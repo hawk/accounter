@@ -1,0 +1,68 @@
+%% Copyright 2015 Hakan Mattsson
+%%
+%% See the file "LICENSE" for information on usage and redistribution
+%% of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+<html>
+
+<erl>
+
+-include_lib("books/include/books.hrl").
+
+out(A) ->
+    %% Cwd = filename:dirname(A#arg.fullpath),
+    Name = accounter:get_book_name(A),
+    Book = accounter:import_book(A, Name),
+    Delim = accounter:get_field_delim(A),
+    {AccountChars, VoucherChars, ItemChars, BudgetChars,
+     TypeChars, ErrorChars} =
+        accounter:book_to_chars(Book, Delim),
+    [
+     {ssi, "header.ssi",[],[]},
+     {ssi, "buttons.ssi",[],[]},
+     {ehtml,
+      [
+       {h2,[], {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
+                Book#book.name ++ "&nbsp;- tabeller"}},
+       gen_index(A),
+       gen_table(Book, "errors",   "Felmeddelanden.txt", ErrorChars),
+       gen_table(Book, "budget",   "Budget.txt", BudgetChars),
+       gen_table(Book, "vouchers", "Verifikationer.txt", VoucherChars),
+       gen_table(Book, "items",    "Kontering.txt", ItemChars),
+       gen_table(Book, "accounts", "Kontotabell.txt", AccountChars),
+       gen_table(Book, "types",    "Kontotyper.txt", TypeChars)
+      ]},
+     {ssi, "footer.ssi",[],[]}
+    ].
+
+gen_index(A) ->
+    [{ul, [],
+      [
+       {li,[], [{p,[], [{a, [{href, "#errors"}],
+                         {pre_html, accounter:to_html("Felmeddelanden")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#budget"}],
+                         {pre_html, accounter:to_html("Budget")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#vouchers"}],
+                         {pre_html, accounter:to_html("Verifikationer")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#items"}],
+                         {pre_html, accounter:to_html("Konteringar")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#accounts"}],
+                         {pre_html, accounter:to_html("Konton")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#types"}],
+                         {pre_html, accounter:to_html("Kontotyper")}}]}]}
+      ]}
+    ].
+
+gen_table(B, Type, FileName, Chars) ->
+    [{br},
+     {hr},
+     {h2,[], {a, [{name, Type}],
+              {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
+               B#book.name ++ "&nbsp;- " ++ FileName}}},
+     {'div', [{class, box}, {bgcolor,"#B6b6a5"}],
+      {pre, [], {pre_html, accounter:to_html(Chars)}}}
+    ].
+
+</erl>
+
+</html>

@@ -1,0 +1,107 @@
+<html>
+
+<erl>
+
+-include_lib("books/include/books.hrl").
+
+out(A) ->
+    %% Cwd  = filename:dirname(A#arg.fullpath),
+    Name = accounter:get_book_name(A),
+    Book = accounter:import_book(A, Name),
+    NextFreeVid = lists:max([0] ++ [V#voucher.id || V <- Book#book.vouchers]) + 1,
+    #voucher{id = Vid, date = Date, text = Text, items = Items} =
+        ensure_voucher(NextFreeVid, A, Book),
+    HtmlVid = accounter:to_html(Vid),
+    HtmlNextVid = accounter:to_html(NextFreeVid),
+    [
+     {ssi, "header.ssi",[],[]},
+     {ssi, "buttons.ssi",[],[]},
+     {ehtml,
+      [{h2,[],
+        [{pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++ Name ++ " - Registrera"},
+         {form,
+          [{method,post},
+           {name,register},
+           {action, "register_post.yaws"},
+           {autocomplete,"off"}],
+
+          [{table, [{border,0},{width,"100%"}],
+            [{tr, [],
+              [{td, [],
+                {input, [{type,submit},{value,accounter:to_html("Spara")}]}},
+               {td, [],
+                {table, [{border,2}, {cellspacing,1},{cellpadding,1}],
+                 [{tr, [{border,0}],
+                   [{th, [{align,left}], {pre_html, accounter:to_html("Verif")}},
+                    {th, [{align,left}], {pre_html, accounter:to_html("Datum")}},
+                    {th, [{align,left}], {pre_html, accounter:to_html("Text")}}
+                   ]},
+                  {tr, [],
+                   [{td, [{align,left}], {select, [{name,voucher}], [{option, [{value, HtmlVid}], HtmlVid},
+                                                                     {option, [{value, HtmlNextVid}, selected], HtmlNextVid}]}},
+                    {td, [{align,left}], {input, [{name, date},{type, text}, {size," 10"}, {value,accounter:to_html(Date)}]}},
+                    {td, [{align,left}], {input, [{name, text},{type, text}, {size, "50"}, {value,accounter:to_html(Text)}]}}
+                   ]}
+                 ]}}]}]},
+           {p, [], []},
+           {table, [{border,2}, {cellspacing,1},{cellpadding,1}],
+            [{tr, [{border,0}],
+              [{th, [{align,left}], {pre_html, accounter:to_html("Text")}},
+               {th, [{align,left}], {pre_html, accounter:to_html("Debet")}},
+               {th, [{align,left}], {pre_html, accounter:to_html("Kredit")}},
+               {th, [{align,left}], {pre_html, accounter:to_html("Konto")}}
+              ]} |
+             [{tr, [],
+               case I#item.amount > 0 of
+                   true ->
+                       [{td, [{align,left}], {input, [{name,remark},{type,text},{size,"50"},
+                                                      {value,accounter:to_html(I#item.remark)}]}},
+                        {td, [{align,left}], {input, [{name,debit},{type,text},{size,"10"},
+                                                      {value,accounter:to_html({kr, I#item.amount})}]}},
+                        {td, [{align,left}], {input, [{name,credit},{type,text},{size,"10"},
+                                                      {value,accounter:to_html({kr, 0})}]}},
+                        {td, [{align,left}], account_selection(I#item.account_id, Book)}];
+                   false ->
+                       [{td, [{align,left}], {input, [{name,remark},{type,text},{size,"50"},
+                                                      {value,accounter:to_html(I#item.remark)}]}},
+                        {td, [{align,left}], {input, [{name,debit},{type,text},{size,"10"},
+                                                      {value,accounter:to_html({kr, 0})}]}},
+                        {td, [{align,left}], {input, [{name,credit},{type,text},{size,"10"},
+                                                      {value,accounter:to_html({kr, abs(I#item.amount)})}]}},
+                        {td, [{align,left}], account_selection(I#item.account_id, Book)}]
+               end
+              } || I <- Items]
+            ]}]
+         }]}]},
+     {ssi, "footer.ssi",[],[]}
+    ].
+
+ensure_voucher(NextFreeVid, A, B) when integer(NextFreeVid), record(B, book) ->
+    Postgirot = 1020, %% BUGBUG
+    ExtraItems = lists:duplicate(20, #item{account_id = Postgirot, amount = 0, remark = ""}),
+    case yaws_api:queryvar(A, id) of
+        {ok, Id} ->
+            Vid = list_to_integer(Id),
+            case [V || V <- B#book.vouchers, V#voucher.id == Vid] of
+                [] ->
+                    #voucher{id = NextFreeVid, date = "YYYY-MM-DD", text = "", items = ExtraItems};
+                [V] ->
+                    V#voucher{items = V#voucher.items ++ ExtraItems}
+            end;
+        undefined ->
+            #voucher{id = NextFreeVid, date = "YYYY-MM-DD", text = "", items = ExtraItems}
+    end.
+
+account_selection(SelectedAid, B)  when integer(SelectedAid), record(B, book) ->
+    Preselected = fun(Aid) when Aid == SelectedAid -> [selected]; (_) -> [] end,
+    {select,
+     [{name,account}],
+     [{option,
+       [{value,accounter:to_html(A#account.id)} | Preselected(A#account.id)],
+       {pre_html, [accounter:to_html(A#account.id), accounter:to_html(" - "),
+                   accounter:to_html(A#account.name), accounter:to_html(" - "),
+                   accounter:to_html(A#account.type)]}} || A <- B#book.accounts]}.
+
+</erl>
+
+</html>

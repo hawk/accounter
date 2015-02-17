@@ -1,0 +1,52 @@
+#!/usr/bin/env escript
+%% This is an -*- erlang -*- file.
+
+-module(accounter_main).
+
+main([]) ->
+    {ok, WorkDir} = file:get_cwd(),
+    main(["--dir", WorkDir]);
+main(["--dir", WorkDir]) ->
+    ThisEscript = filename:absname(escript:script_name()),
+    AppDir = filename:dirname(filename:dirname(ThisEscript)),
+    start_yaws(AppDir, WorkDir),
+    start_app(AppDir),
+    timer:sleep(infinity).
+
+start_yaws(AppDir, WorkDir) ->
+    io:format("Start yaws...", []),
+    Id = "accounter",
+    GconfList =
+        [
+         {include_dir,      [filename:join([AppDir, "include"])]},
+         {ebin_dir,         [filename:join([AppDir, "ebin"])]},
+         {logdir,           filename:join([WorkDir, "logs"])},
+         {copy_errlog,      true},
+         {fail_on_bind_err, true},
+         {resolve_hostname, false},
+         {trace,            false},
+         {id, Id}
+        ],
+    DocRoot = filename:join([AppDir, "priv", "www"]),
+    SconfList =
+        [
+         {docroot, DocRoot},
+         {port, 8080},
+         {listen, {127,0,0,1}},
+         {tilde_allowed_scripts, false},
+         {opaque,
+          [
+           {work_dir, WorkDir}
+          ]}
+        ],
+    YawsEbinDir = filename:join([AppDir, "lib", "yaws", "ebin"]),
+    true = code:add_patha(YawsEbinDir),
+    ok = yaws:start_embedded(DocRoot, SconfList, GconfList, Id),
+    io:format("done.\n", []).
+
+start_app(AppDir) ->
+    io:format("Start accounter...", []),
+    EbinDir = filename:join([AppDir, "ebin"]),
+    true = code:add_patha(EbinDir),
+    ok = application:start(accounter),
+    io:format("done.\n", []).

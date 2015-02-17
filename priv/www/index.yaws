@@ -1,0 +1,57 @@
+%% Copyright 2015 Hakan Mattsson
+%%
+%% See the file "LICENSE" for information on usage and redistribution
+%% of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+<html>
+
+<erl>
+
+-include_lib("kernel/include/file.hrl").
+
+out(A) ->
+%%    Cwd = filename:dirname(A#arg.fullpath),
+    [
+     {ssi, "header.ssi",[],[]},
+     {ssi, "buttons.ssi",[],[]},
+     {ehtml,
+      [
+       {h2,[], {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring - v&auml;lj ett bokf&ouml;rings&aring;r"}},
+       gen_index(A)
+      ]},
+     {ssi, "footer.ssi",[],[]}
+    ].
+
+gen_index(A) ->
+    BooksDir = accounter:get_books_dir(A),
+    case file:list_dir(BooksDir) of
+        {ok, Names} ->
+            Rev = fun(X, Y) -> X > Y end,
+            [
+             {ul, [],
+              [
+               [
+                {li,[], [{p,[], [{a, [{href, ["reports.yaws?name=", Name]}],
+                                  Name}]}]}
+               ] || Name <- lists:sort(Rev, Names), is_dir(BooksDir, Name)]
+             }
+            ];
+        {error, Reason} ->
+            [
+             {p, [], ["Yaws server error: ", $",
+                      file:format_error(Reason), $"]},
+             {p, [], ["books_dir=", BooksDir]}
+            ]
+    end.
+
+is_dir(BooksDir, Name) ->
+    DirName = filename:join([BooksDir, Name]),
+    case file:read_file_info(DirName) of
+        {ok, FI} when FI#file_info.type == directory ->
+            true;
+        _ ->
+            false
+    end.
+
+</erl>
+</html>

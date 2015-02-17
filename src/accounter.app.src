@@ -1,0 +1,12 @@
+{application, accounter,
+ [{description, "Accounter - a book-keeping application"},
+  {vsn, "%VSN%"},
+  {modules, [
+             accounter,
+             accounter_app,
+             accounter_sup,
+             accounter_vsn
+            ]},
+  {registered, [accounter_sup]},
+  {applications, [kernel, stdlib, yaws]},
+  {mod, {accounter_app, []}}]}.

@@ -1,0 +1,48 @@
+# Copyright 2015 Hakan Mattsson
+#
+# See the file "LICENSE" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+# Process this file with autoconf to produce a configure script.
+AC_INIT(Makefile)
+
+# Default application installation dir. Override with --prefix
+AC_PREFIX_DEFAULT(/usr/local/accounter)
+
+# Default config installation dir is $prefix/etc. Override with --sysconfdir
+
+use_default_sysconfdir=false
+if test "x$sysconfdir" == 'x${prefix}/etc'; then
+  # $sysconfdir is not set
+  use_default_sysconfdir=true
+  if test "x$prefix" == "xNONE"; then
+    # $prefix is not set
+    sysconfdir="/usr/local/accounter/priv"
+  else
+    sysconfdir="$prefix/priv"
+  fi
+fi
+
+AC_SUBST(sysconfdir)
+AC_SUBST(use_default_sysconfdir)
+
+################################################################################
+# Erlang
+
+# AC_ERLANG_NEED_ERL is not available on old systems
+AC_PATH_PROG(ERL, erl, no)
+if test "x$ERL" == "xno"; then
+  AC_MSG_ERROR([erl: command not found])
+fi
+
+# AC_ERLANG_NEED_ERLC is not available on old systems
+AC_PATH_PROG(ERLC, erlc, no)
+if test "x$ERLC" == "xno"; then
+  AC_MSG_ERROR([erlc: command not found])
+fi
+
+################################################################################
+# Output
+
+AC_OUTPUT(include.mk)
+AC_OUTPUT

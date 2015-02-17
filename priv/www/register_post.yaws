@@ -1,0 +1,76 @@
+%% Copyright 2015 Hakan Mattsson
+%%
+%% See the file "LICENSE" for information on usage and redistribution
+%% of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+<html>
+
+<erl>
+
+-include_lib("books/include/books.hrl").
+
+out(A) ->
+    Cwd  = filename:dirname(A#arg.fullpath),
+    Name = accounter:get_book_name(A),
+    Book = accounter:import_book(A, Name),
+    Dir = filename:join([Cwd, "books", Name]),
+    Delim = ";",
+    V = parse_voucher(A, Book, Delim),
+    export_voucher(Dir, V, Delim),
+    Vid2 = accounter:to_html(V#voucher.id),
+   {redirect_local, ["/reports.yaws", accounter:forward_query([], A),
+                     "#voucher_", Vid2]}.
+
+%%
+%%     {ssi, "header.ssi",[],[]},
+%%     {ssi, "buttons.ssi",[],[]},
+%%     {ehtml,
+%%      [{h2,[],
+%%      [{pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++ Name ++ " - Sparad till fil"},
+%%       {p, [], {a, [{href, ["reports.yaws", accounter:forward_query([], A), "#voucher_", Vid2]}],
+%%                {pre_html, [accounter:to_html("Grundbok - "), Vid2]}}}
+%%      ]}]},
+%%     {ssi, "footer.ssi",[],[]}
+%%    ].
+
+parse_voucher(A, B, Delim) when record(B, book), list(Delim) ->
+    [{"voucher",Vid},
+     {"date",Date},
+     {"text",Text} | Items] = yaws_api:parse_post(A),
+    VoucherTokens = lists:concat([Vid, Delim, Date, Delim, Text]),
+    [V] = accounter:tokens_to_vouchers(accounter:to_tokens(VoucherTokens,
+                                                   hd(Delim)), []),
+    VoucherItems = parse_items(Items, Vid, Delim),
+    {VoucherItems2, _Rem, _Errors} =
+        accounter:adapt_items(VoucherItems, V#voucher.id, [], [], []),
+    %%VoucherItems3 = [I || I <- VoucherItems2, I#item.amount /= 0],
+    V#voucher{items = VoucherItems2}.
+
+parse_items([{"remark", ""}, {"debit", _}, {"credit", _},
+             {"account", _} | Items], Vid, Delim) ->
+    parse_items(Items, Vid, Delim);
+parse_items([{"remark", undefined}, {"debit", _}, {"credit", _},
+             {"account", _} | Items], Vid, Delim) ->
+    parse_items(Items, Vid, Delim);
+parse_items([{"remark", Remark}, {"debit", Debit}, {"credit", Credit},
+             {"account", Account} | Items], Vid, Delim) ->
+    ItemTokens = lists:concat([Vid, Delim, Account, Delim, Debit,
+                               Delim, Credit, Delim, Remark]),
+    [I] = accounter:tokens_to_items(accounter:to_tokens(ItemTokens, hd(Delim)), []),
+    [I | parse_items(Items, Vid, Delim)];
+parse_items([], _Vid, _Delim) ->
+    [].
+
+export_voucher(Dir, V, Delim) when record(V, voucher), list(Delim) ->
+    VoucherChars = accounter:vouchers_to_chars([V], hd(Delim)),
+    ItemChars =  accounter:voucher_items_to_chars([V], hd(Delim)),
+    VoucherFile = filename:join([Dir, "Verifikationer.txt"]),
+    ok = file:write_file(VoucherFile, list_to_binary(VoucherChars), [append]),
+    ItemFile = filename:join([Dir, "Kontering.txt"]),
+    ok = file:write_file(ItemFile, list_to_binary(ItemChars), [append]),
+    ok,
+    ItemChars.
+
+</erl>
+
+</html>

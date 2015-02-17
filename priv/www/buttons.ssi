@@ -1,0 +1,30 @@
+<table width="100%">
+  <tr>
+    <td>
+      <table bgcolor="#B6b6a5" border="2" cellpadding="5" cellspacing="0" height="100" width="95%">
+        <tr border="2">
+          <td> <font size ="3"> <a href="http://www.postgirot.se">Postgirot.se</a> </font> </td>
+          <td> <font size ="3"> <a href="http://www.forspaddling.com">Forspaddling.com</a> </font> </td>
+          <td> <font size ="3"> <a href="http://www.forsguiden.com">Forsguiden.com</a> </font> </td>
+          <td> <font size ="3"> <a href="http://www.kanot.com">Kanot.com</a> </font> </td>
+        </tr>
+        <tr border="1">
+          <td> <font size ="3"> <a href="index.yaws">V&auml;lj bokf&ouml;rings&aring;r</a> </font> </td>
+          <td> <font size ="3"> <a href="register.yaws">Kontera</a> </font> </td>
+          <td> <font size ="3"> <a href="budget.yaws">Budget</a> </font> </td>
+          <td> <font size ="3"> <a href="accounts.yaws">Konton</a> </font> </td>
+       </tr>
+       <tr border="1">
+          <td> <font size ="3"> <a href="reports.yaws">Rapporter</a> </font> </td>
+          <td> <font size ="3"> <a href="tables.yaws">Tabeller</a> </font> </td>
+          <td> <font size ="3"> <a href="books">Filer</a> </font> </td>
+          <td> <font size ="3"> &nbsp; </font> </td>
+       </tr>
+     </table>
+    </td>
+    <td>
+      <a href="http://www.kkss.se"><img border=0 src="icons/kksslogo.jpg" alt="kksslogo" width="100" align=right"></a>
+    </td>
+  </tr>
+</table>
+<hr>

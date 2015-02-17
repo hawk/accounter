@@ -1,0 +1,445 @@
+<html>
+
+<erl>
+
+-include_lib("accounter/include/accounter.hrl").
+
+out(Arg) ->
+    %% Cwd  = filename:dirname(Arg#arg.fullpath),
+    Name = accounter:get_book_name(Arg),
+    Book = accounter:import_book(Arg, Name),
+    Report = accounter:get_var(Arg, report, "all"),
+    gen_reports(Arg, Book, Name, Report).
+
+gen_reports(Arg, Book, Name, Report) when Report == "all" ->
+    [
+     {ssi, "header.ssi",[],[]},
+     {ssi, "buttons.ssi",[],[]},
+     {ehtml,
+      [{h3,[],
+        [{pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
+          Name ++ " - Rapporter"},
+         gen_index(),
+         {hr},
+         gen_errors(Book),
+         {br},
+         {hr},
+         gen_summary(Book, balance, #account.balance, "Balansrapport"),
+         {br},
+         {hr},
+         gen_summary(Book, result, #account.result, "Resultatrapport"),
+         {br},
+         {hr},
+         gen_budget(Book),
+         {br},
+         {hr},
+         gen_summary(Book, comparison, #account.result,
+                     "J&auml;mf&ouml;relse mellan resultat och budget"),
+         {br},
+         {hr},
+         gen_journal(Arg, Book),
+         {br},
+         {hr},
+         gen_ledge(Book),
+         {br},
+         {hr},
+         gen_print(Arg, Book)
+        ]}
+      ]},
+     {ssi, "footer.ssi",[],[]}
+    ];
+gen_reports(Arg, Book, Name, Report) ->
+    [
+     {ssi, "header.ssi",[],[]},
+     {ehtml,
+      case Report of
+          "errors" ->
+              gen_errors(Book);
+          "balance" ->
+              gen_summary(Book, balance, #account.balance, "Balansrapport");
+          "result" ->
+              gen_summary(Book, result, #account.result, "Resultatrapport");
+          "budget" ->
+              gen_budget(Book);
+          "comparison" ->
+              gen_summary(Book, comparison, #account.result,
+                          "J&auml;mf&ouml;relse mellan resultat och budget");
+          "journal" ->
+              gen_journal(Arg, Book);
+          "ledge" ->
+              gen_ledge(Book)
+      end
+     }
+    ].
+
+gen_index() ->
+    [{ul, [],
+      [
+       {li,[], [{p,[], [{a, [{href, "#errors"}],
+                         {pre_html, accounter:to_html("Felmeddelanden")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#balance"}],
+                         {pre_html, accounter:to_html("Balansrapport")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#result"}],
+                         {pre_html, accounter:to_html("Resultatrapport")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#budget"}],
+                         {pre_html, accounter:to_html("Budget")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#comparison"}],
+                         {pre_html, accounter:to_html("J&auml;mf&ouml;relse mellan resultat och budget")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#journal"}],
+                         {pre_html, accounter:to_html("Grundbok")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#ledge"}],
+                         {pre_html, accounter:to_html("Huvudbok")}}]}]},
+       {li,[], [{p,[], [{a, [{href, "#print"}],
+                         {pre_html, accounter:to_html("Utskrift")}}]}]}
+      ]}
+    ].
+
+gen_print(Arg, Book) ->
+    [{h3,[], {a, [{name, "print"}],
+              {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
+               Book#book.name ++ "&nbsp;- Utskrift"}}},
+     {ul, [],
+      [
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "errors"}], Arg)]}], {pre_html, accounter:to_html("Felmeddelanden")}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "balance"}], Arg)]}], {pre_html, accounter:to_html("Balansrapport")}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "result"}], Arg)]}], {pre_html, accounter:to_html("Resultatrapport")}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "budget"}], Arg)]}], {pre_html, accounter:to_html("Budget")}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "comparison"}], Arg)]}], {pre_html, accounter:to_html("J&auml;mf&ouml;relse mellan resultat och budget")}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "journal"}], Arg)]}], {pre_html, accounter:to_html("Grundbok")}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "ledge"}], Arg)]}], {pre_html, accounter:to_html("Huvudbok")}}]}]}
+      ]}
+    ].
+
+%%%-------------------------------------------------------------------
+%%% Errors
+%%%-------------------------------------------------------------------
+
+gen_errors(B) when record(B, book), B#book.errors == [] ->
+    [{h3,[], {a, [{name, "errors"}],
+              {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
+               B#book.name ++ "&nbsp;- Inga felmeddelanden"}}}
+    ];
+gen_errors(B) when record(B, book) ->
+    [{h3,[], {a, [{name, "errors"}],
+              {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
+               B#book.name ++ "&nbsp;- Felmeddelanden"}}},
+     {table, [{border,2}, {cellspacing,1}, {cellpadding,1},{width,"100%"}],
+       [{tr, [{border,2}],
+         [{th, [{align,left}], {pre_html, accounter:to_html("Typ")}},
+          {th, [{align,left}], {pre_html, accounter:to_html("Id")}},
+          {th, [{align,left}], {pre_html, accounter:to_html("Ajabaja")}},
+          {th, [{align,left}], {pre_html, accounter:to_html("Beskrivning")}}
+         ]} |
+        [{tr, [{border,1}],
+          [{td, [], {pre_html, accounter:to_html(Type)}},
+           {td, [], {a, [{href, "#" ++ key_to_ref(Type, Id) }],
+                     {pre_html, accounter:to_html(Id)}}},
+           {td, [], {pre_html, accounter:to_html(Val)}},
+           {td, [], {pre_html, accounter:to_html(Reason)}}
+          ]} || #error{type = Type, id = Id, value = Val, reason = Reason} <- B#book.errors]
+        ]}].
+
+key_to_ref(item, Key) ->
+    key_to_ref(voucher, Key);
+key_to_ref(Type, Key) ->
+    atom_to_list(Type) ++ "_" ++ accounter:to_html(Key).
+
+%%%-------------------------------------------------------------------
+%%% Journal
+%%%-------------------------------------------------------------------
+
+gen_journal(Arg, B) ->
+    [{h3,[], {a, [{name, "journal"}],
+              {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
+               B#book.name ++ "&nbsp;- Grundbok"}}},
+     {table, [{border,2}, {cellspacing,1},{cellpadding,1},{width,"100%"}],
+       [{tr, [{border,0}],
+         [{th, [{align,left}], {pre_html, accounter:to_html("Verif")}},
+          {th, [{align,left}], {pre_html, accounter:to_html("Datum")}},
+          {th, [{align,left}], {pre_html, accounter:to_html("Text")}},
+          {th, [{align,left}], {pre_html, accounter:to_html("Debet")}},
+          {th, [{align,left}], {pre_html, accounter:to_html("Kredit")}},
+          {th, [{align,left}], {pre_html, accounter:to_html("Konto")}}
+         ]},
+        [gen_journal_row(Arg, B#book.accounts, V) || V <- B#book.vouchers]
+       ]}].
+
+gen_journal_row(Arg, Accounts, #voucher{id = Vid, date = Date, text = Text, items = Items}) ->
+    ItemFun =
+        fun(#item{account_id = Aid, amount = Amount, remark = Remark}, N) ->
+                Name =
+                    case [A || A <- Accounts, A#account.id == Aid] of
+                        [] -> "ERROR_REF_BY_ITEM";
+                        [A] -> A#account.name
+                    end,
+                ItemRow =
+                    {tr, [{border,0}],
+                     [{td, [{colspan,2}, {border,0}], {pre_html, accounter:to_html("")}},
+                      {td, [{border,1}], {pre_html, accounter:to_html(Remark)}},
+                      to_debit_credit(Amount),
+                      {td, [{border,1}],
+                       {a, [{href, "#" ++ key_to_ref(account, Aid)}],
+                        {pre_html, [accounter:to_html(Aid),
+                                    accounter:to_html(" - "),
+                                    accounter:to_html(Name)]}}}]},
+                {ItemRow, N + 1}
+        end,
+    {Rows, _} = lists:mapfoldl(ItemFun, 1, Items),
+    Vid2 = accounter:to_html(Vid),
+    [{tr, [],
+      [{th, [{align,right}],
+        {a, [{name, key_to_ref(voucher, Vid)},
+             {href, ["register.yaws", accounter:forward_query([{id, Vid2}], Arg)]} %% OPT
+            ], Vid2}},
+       {th, [{align,left}], {pre_html,accounter:to_html(Date)}},
+       {th, [{align,left},{colspan,5}], {pre_html,accounter:to_html(Text)}}]},
+     Rows
+    ].
+
+ to_debit_credit(Amount) ->
+    case Amount > 0 of
+        true ->
+            [{td, [{align,right}, {border,1}], {pre_html, accounter:to_html({kr, Amount})}},
+             {td, [{align,right}, {border,1}], {pre_html, accounter:to_html({kr, 0})}}];
+        false ->
+            [{td, [{align,right}, {border,1}], {pre_html, accounter:to_html({kr, 0})}},
+             {td, [{align,right}, {border,1}], {pre_html, accounter:to_html({kr, abs(Amount)})}}]
+    end.
+
+%%%-------------------------------------------------------------------
+%%% Ledge
+%%%-------------------------------------------------------------------
+
+gen_ledge(B) ->
+    [{h3,[], {a, [{name, "ledge"}],
+              {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
+               B#book.name ++ "&nbsp;- Huvudbok"}}},
+     [gen_ledge_rows(A, B#book.vouchers) || A <- B#book.accounts]
+    ].
+
+gen_ledge_rows(#account{id = Aid, name = Name, type = Type, desc = Desc, budget = Budget}, Vouchers) ->
+    VoucherFun =
+        fun(#voucher{id = Vid, date = Date, text = Text, items = Items}, Acc) ->
+                ItemFun =
+                    fun(#item{account_id = ItemAid, amount = Amount, remark = Remark}, {IN, ID, IC, IB}) ->
+                            VoucherAttr = [{href, "#" ++ key_to_ref(voucher, Vid)}],
+                            IN2 = IN + 1,
+                            IB2 = IB + Amount,
+                            {ID2, IC2} =
+                                case Amount >= 0 of
+                                    true  -> {ID + Amount, IC};
+                                    false -> {ID, IC - Amount}
+                                end,
+                            ItemCols =
+                                [{td, [{border,1},{align, right}],
+                                  {a, VoucherAttr, {pre_html, accounter:to_html(Vid)}}},
+                                 {td, [{border,1}], {pre_html, accounter:to_html(Date)}},
+                                 {td, [{border,1}], {pre_html, accounter:to_html(Text)}},
+                                 {td, [{border,1}], {pre_html, accounter:to_html(Remark)}},
+                                 to_debit_credit(Amount),
+                                 {td, [{border,1}, {align, right}],
+                                  {pre_html, accounter:to_html({kr, IB2})}}],
+                            IR = [{tr, [{border,0}], ItemCols}],
+                            {IR, {IN2, ID2, IC2, IB2}}
+                    end,
+                lists:mapfoldl(ItemFun, Acc, [I || I <- Items, I#item.account_id == Aid])
+        end,
+    {Rows, {VN, VD, VC, VB}} = lists:mapfoldl(VoucherFun, {0, 0, 0, 0}, Vouchers),
+    case lists:flatten(Rows) of
+        [] when Budget == undefined ->
+            [];
+        Rows2 ->
+            [{h4, [],{a, [{name, key_to_ref(account, Aid)}, {href, "#" ++ key_to_ref(summary, Aid)}],
+                      {pre_html,
+                       [accounter:to_html(Aid), " - ",
+                        accounter:to_html(Name),
+                        case Desc == [] of
+                            true  -> [];
+                            false ->  ["&nbsp;(", accounter:to_html(Desc), ")"]
+                        end,
+                        "&nbsp;-&nbsp;",
+                        accounter:to_html(Type)
+                       ]}}},
+             {table, [{border,2}, {cellspacing,1},{cellpadding,1},{width,"100%"}],
+              [{tr, [{border,0}],
+                [{th, [{align,left}], {pre_html, accounter:to_html("Verif")}},
+                 {th, [{align,left}], {pre_html, accounter:to_html("Datum")}},
+                 {th, [{align,left}], {pre_html, accounter:to_html("Text")}},
+                 {th, [{align,left}], {pre_html, accounter:to_html("Anm&auml;rkning")}},
+                 {th, [{align,left}], {pre_html, accounter:to_html("Debet")}},
+                 {th, [{align,left}], {pre_html, accounter:to_html("Kredit")}},
+                 {th, [{align,left}], {pre_html, accounter:to_html("Saldo")}}
+                ]},
+               Rows2,
+               {tr, [{border,2}],
+                [{th, [{align,left}], {pre_html, accounter:to_html("")}},
+                 {th, [{align,left}], {pre_html, accounter:to_html("")}},
+                 {th, [{align,left}], {pre_html, [accounter:to_html("Antal: "), accounter:to_html(VN)]}},
+                 {th, [{align,left}], {pre_html, accounter:to_html("Summa")}},
+                 {th, [{align,right}], {pre_html, accounter:to_html({kr, VD})}},
+                 {th, [{align,right}], {pre_html, accounter:to_html({kr, VC})}},
+                 {th, [{align,right}], {pre_html, accounter:to_html({kr, VB})}}
+                ]}
+              ]
+             }
+            ]
+    end.
+
+%%%-------------------------------------------------------------------
+%%% Generate summary
+%%%-------------------------------------------------------------------
+
+gen_summary(B, SummaryType, SummaryPos, ReportName) when atom(SummaryType) ->
+    Accounts = [A || A <- B#book.accounts, element(SummaryPos, A) == true],
+    Types = lists:sort(sets:to_list(sets:from_list([A#account.type || A <- Accounts]))),
+    Mixed = [gen_summary_type(B, SummaryType, T, Accounts) || T <- lists:reverse(Types)],
+    CalcSum = fun({T, Rows, {Result, Budget, Comparison}}, {AccRows, AccSum}) when T == comparison ->
+                      {[Rows | AccRows], AccSum + Comparison};
+                 ({T, Rows, {Result, Budget, Comparison}}, {AccRows, AccSum}) ->
+                      {[Rows | AccRows], AccSum + Result}
+              end,
+    {Rows, Total} = lists:foldl(CalcSum, {[], 0}, Mixed),
+    [{h3,[], {a, [{name, atom_to_list(SummaryType)}],
+              {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
+               B#book.name ++ "&nbsp;- " ++ ReportName}}},
+     Rows,
+     {h3, [], {pre_html, [accounter:to_html("Total: "), accounter:to_html({kr, Total})]}}
+    ].
+
+gen_summary_type(B, SummaryType, T, Accounts) ->
+    Accounts2 = [A || A <- Accounts, A#account.type == T],
+    Accounts3 = lists:keysort(#account.name, Accounts2),
+    Fun = fun(A, {AccTot, AccBud, AccComp}) ->
+                  {Row, Total, Budget, Comparison} =
+                      gen_summary_account(B, SummaryType, A, B#book.vouchers),
+                  {Row, {AccTot + Total, AccBud + Budget, AccComp + Comparison}}
+          end,
+    {Rows, {Total, Budget, Comparison}} =
+        lists:mapfoldl(Fun, {0, 0, 0}, Accounts3),
+    Rows2 = gen_summary_table(B, SummaryType, T, Rows, Total, Budget, Comparison),
+    {SummaryType, Rows2, {Total, Budget, Comparison}}.
+
+gen_summary_table(B, comparison, T, Rows, Result, Budget, Comparison) ->
+    [{h4, [], {pre_html, accounter:to_html(T)}},
+     {table, [{border,2}, {cellspacing,1},{cellpadding,1},{width,"100%"}],
+      [{tr, [{border,0}],
+        [{th, [{width, "55%"},{align,left}], {pre_html, accounter:to_html("Konto")}},
+         {th, [{width, "15%"},{align,left}], {pre_html, accounter:to_html("Resultat")}},
+         {th, [{width, "15%"},{align,left}], {pre_html, accounter:to_html("Budget")}},
+         {th, [{width, "15%"},{align,left}], {pre_html, accounter:to_html("Avvikelse")}}
+        ]
+       },
+       Rows,
+       {tr, [{border,0}],
+        [{th, [{align,left}], {pre_html, accounter:to_html("Summa")}},
+         {th, [{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Result)})}},
+         {th, [{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Budget)})}},
+         {th, [{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Comparison)})}}
+        ]
+       }
+      ]
+     }
+    ];
+gen_summary_table(B, SummaryType, T, Rows, Summary, _Budget, _Comparison) ->
+    [{h4, [], {pre_html, accounter:to_html(T)}},
+     {table, [{border,2}, {cellspacing,1},{cellpadding,1},{width,"70%"}],
+      [{tr, [{border,0}],
+        [{th, [{width, "75%"},{align,left}], {pre_html, accounter:to_html("Konto")}},
+         {th, [{width, "25%"},{align,left}], {pre_html, accounter:to_html("Saldo")}}
+        ]
+       },
+       Rows,
+       {tr, [{border,0}],
+        [{th, [{align,left}], {pre_html, accounter:to_html("Summa")}},
+         {th, [{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Summary)})}}
+        ]
+       }
+      ]
+     }
+    ].
+
+gen_summary_account(B, SummaryType, #account{id = Aid, name = Name, type = T, budget = Budget}, Vouchers) ->
+    ItemFun =
+        fun(#item{amount = Amount}, Summary) ->
+                Summary + Amount
+        end,
+    VoucherFun =
+        fun(#voucher{items = Items}, Summary) ->
+                lists:foldl(ItemFun, Summary, [I || I <- Items, I#item.account_id == Aid])
+        end,
+    case lists:foldl(VoucherFun, 0, Vouchers) of
+        0 when Budget == undefined ->
+            {[], 0, 0, 0};
+        Summary ->
+            Attrs = [{href, "#" ++ key_to_ref(account, Aid)}, {name, key_to_ref(summary, Aid)}],
+            {Cols, BudSum, CompSum} = gen_comparison_cols(B, SummaryType, T, Summary, Budget),
+            Row = {tr, [{border,0}],
+                   [{td, [{border,0}], {a, Attrs, {pre_html, accounter:to_html(Name)}}},
+                    {td, [{border,0},{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Summary)})}},
+                    Cols
+                   ]},
+            {Row, Summary, BudSum, CompSum}
+    end.
+
+gen_comparison_cols(B, comparison, T, Result, undefined) ->
+    gen_comparison_cols(B, comparison, T, Result, 0);
+gen_comparison_cols(B, comparison, T, Result, Budget) ->
+    Comparison = Result - Budget,
+    Cols = [{td, [{border,0},{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Budget)})}},
+            {td, [{border,0},{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Comparison)})}}],
+    {Cols, Budget, Comparison};
+gen_comparison_cols(_, _, _, Result, _) ->
+    {[], 0, 0}.
+
+%%%-------------------------------------------------------------------
+%%% Budget
+%%%-------------------------------------------------------------------
+
+gen_budget(B) ->
+    Accounts = [A || A <- B#book.accounts, A#account.budget /= undefined],
+    Types = lists:sort(sets:to_list(sets:from_list([A#account.type || A <- Accounts]))),
+    Mixed = [gen_budget_type(B, T, Accounts) ||  T <- Types],
+    CalcSum = fun({Rows, Sum}, {AccRows, AccSum}) -> {[Rows | AccRows], AccSum + Sum} end,
+    {Rows, Total} = lists:foldl(CalcSum, {[], 0}, Mixed),
+    [{h3,[], {a, [{name, "budget"}],
+              {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
+               B#book.name ++ "&nbsp;- Budget"}}},
+     Rows,
+     {h3, [], {pre_html, [accounter:to_html("Total: "), accounter:to_html({kr, -Total})]}}
+    ].
+
+gen_budget_type(B, T, Accounts) ->
+    CalcSum = fun(#account{budget = Val, type = X}, Acc) when X == T->
+                      Acc + Val;
+                 (_, Acc) ->
+                      Acc
+              end,
+    Sum = lists:foldl(CalcSum, 0, Accounts),
+    Rows =
+        [{h4, [], {pre_html, accounter:to_html(T)}},
+         {table, [{border,2}, {cellspacing,1},{cellpadding,1},{width,"70%"}],
+          [{tr, [{border,0}],
+            [{th, [{width, "75%"},{align,left}], {pre_html, accounter:to_html("Konto")}},
+             {th, [{width, "25%"},{align,left}], {pre_html, accounter:to_html("Saldo")}}]},
+           [{tr, [{border,0}],
+             [{td, [{align, left}], {a, [{href, "#" ++ key_to_ref(account, A#account.id)}],
+               {pre_html, accounter:to_html(A#account.name)}}}       ,
+              {td, [{align, right}], {pre_html, accounter:to_html({kr, negate(B, T, A#account.budget)})}}]
+            } || A <- lists:keysort(#account.name, [X || X <- Accounts, X#account.type == T])],
+           {tr, [{border,2}],
+            [{th, [{align,left}], {pre_html, accounter:to_html("Summa")}},
+             {th, [{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Sum)})}}]
+           }
+          ]}],
+    {Rows, Sum}.
+
+negate(B, Type, Value) ->
+    Neg = [negate || AT <- B#book.types, AT#account_type.name == Type, AT#account_type.negate == true],
+    case Neg == [] of
+        true -> Value;
+        false -> -Value
+    end.
+
+</erl>
+
+<html>

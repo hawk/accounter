@@ -1,0 +1,38 @@
+# This is a -*-makefile-*-
+
+# Copyright 2015 Hakan Mattsson
+#
+# See the file "LICENSE" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+ifeq ($(DESTDIR),)
+  DESTDIR=@prefix@
+endif
+
+USE_DEFAULT_ETCDIR=@use_default_sysconfdir@
+ifeq ($(ETCDIR),)
+  ifeq ($(USE_DEFAULT_ETCDIR),true)
+    ETCDIR=$(DESTDIR)/priv
+  else
+    ETCDIR=@sysconfdir@
+  endif
+endif
+
+# Erlang
+ERL="@ERL@"
+ERLC="@ERLC@"
+EMULATOR=beam
+ERLC_FLAGS += +warnings_as_errors +warn_unused_vars +debug_info
+
+# Targets
+../ebin/%.app: %.app.src ../vsn.mk Makefile
+	sed -e "s/%VSN%/$(VSN)/g" < $< > $@
+
+../ebin/%.appup: %.appup.src ../vsn.mk Makefile
+	sed -e "s/%VSN%/$(VSN)/g" < $< > $@
+
+../ebin/%.$(EMULATOR): %.erl
+	$(ERLC) $(ERLC_FLAGS) -o ../ebin $<
+
+%.$(EMULATOR): %.erl
+	$(ERLC) $(ERLC_FLAGS) $<
