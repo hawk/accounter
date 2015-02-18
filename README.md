@@ -1,12 +1,26 @@
 A simple book-keeping app
+=========================
 
-git clone https://github.com/hawk/accounter.git
+Clone the repository
+--------------------
 
-cd accounter
-autoconf
-./configure
-make
+>     git clone https://github.com/hawk/accounter.git
 
-bin/accounter --dir WorkDir
+Build
+-----
 
-firefox localhost:8080
+>     cd accounter
+>     autoconf
+>     ./configure
+>     make
+
+Start the webserver
+-------------------
+
+>     bin/accounter --dir WorkDir
+
+
+Open initial page in web browser
+--------------------------------
+
+>     firefox http://localhost:8080
