@@ -16,5 +16,5 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    accounter:init(),
+    accounter:module_info(), % ensure that the module is loaded
     {ok,{{one_for_all,0,300}, []}}.

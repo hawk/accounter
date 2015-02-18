@@ -326,7 +326,7 @@ gen_summary_table(B, comparison, T, Rows, Result, Budget, Comparison) ->
         [{th, [{width, "55%"},{align,left}], {pre_html, accounter:to_html("Konto")}},
          {th, [{width, "15%"},{align,left}], {pre_html, accounter:to_html("Resultat")}},
          {th, [{width, "15%"},{align,left}], {pre_html, accounter:to_html("Budget")}},
-         {th, [{width, "15%"},{align,left}], {pre_html, accounter:to_html("Avvikelse")}}
+         {th, [{width, "15%"},{align,left}], {pre_html, accounter:to_html("Diff")}}
         ]
        },
        Rows,

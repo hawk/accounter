@@ -12,31 +12,22 @@
 -include("../include/accounter.hrl").
 
 %%-------------------------------------------------------------------
-%% Application
-%%-------------------------------------------------------------------
-
-start() ->
-    application:start(accounter, permanent).
-
-stop() ->
-    application:stop(accounter).
-
-%%-------------------------------------------------------------------
-%% Web stuff
+%% Library functions
 %%-------------------------------------------------------------------
 
 get_books_dir(A) ->
-    get_config(A, "work_dir",
-               fun() -> filename:join([A#arg.docroot, "books"]) end).
+    Error = fun() -> exit(no_books_dir) end,
+    filename:join([get_config(A, work_dir, Error), "books"]).
 
 get_config(#arg{opaque = Opaque}, Key, Default) ->
-    case lists:keysearch(Key, 1, Opaque) of
-        {value, {Key, Val}} ->
-            Val;
+    %% io:format("Opaque: ~p\n", [Opaque]),
+    case lists:keyfind(Key, 1, Opaque) of
         false when is_function(Default) ->
             Default();
         false ->
-            Default
+            Default;
+        {Key, Val} ->
+            Val
     end.
 
 get_var(#arg{} = A, Key, Default) ->

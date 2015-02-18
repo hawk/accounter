@@ -5,19 +5,19 @@
         <tr border="2">
           <td> <font size ="3"> <a href="http://www.postgirot.se">Postgirot.se</a> </font> </td>
           <td> <font size ="3"> <a href="http://www.forspaddling.com">Forspaddling.com</a> </font> </td>
-          <td> <font size ="3"> <a href="http://www.forsguiden.com">Forsguiden.com</a> </font> </td>
+          <td> <font size ="3"> <a href="http://www.kkss.se/Forsguiden/forsguiden.html">Forsguiden</a> </font> </td>
           <td> <font size ="3"> <a href="http://www.kanot.com">Kanot.com</a> </font> </td>
         </tr>
         <tr border="1">
           <td> <font size ="3"> <a href="index.yaws">V&auml;lj bokf&ouml;rings&aring;r</a> </font> </td>
           <td> <font size ="3"> <a href="register.yaws">Kontera</a> </font> </td>
-          <td> <font size ="3"> <a href="budget.yaws">Budget</a> </font> </td>
-          <td> <font size ="3"> <a href="accounts.yaws">Konton</a> </font> </td>
+          <td> <font size ="3"> <a href="budget.yaws">Budget*</a> </font> </td>
+          <td> <font size ="3"> <a href="accounts.yaws">Konton*</a> </font> </td>
        </tr>
        <tr border="1">
           <td> <font size ="3"> <a href="reports.yaws">Rapporter</a> </font> </td>
           <td> <font size ="3"> <a href="tables.yaws">Tabeller</a> </font> </td>
-          <td> <font size ="3"> <a href="books">Filer</a> </font> </td>
+          <td> <font size ="3"> <a href="books">Filer*</a> </font> </td>
           <td> <font size ="3"> &nbsp; </font> </td>
        </tr>
      </table>

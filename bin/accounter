@@ -1,26 +1,39 @@
 #!/usr/bin/env escript
 %% This is an -*- erlang -*- file.
 
+%% Copyright 2015 Hakan Mattsson
+%%
+%% See the file "LICENSE" for information on usage and redistribution
+%% of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
 -module(accounter_main).
 
 main([]) ->
-    {ok, WorkDir} = file:get_cwd(),
+    ThisEscript = filename:absname(escript:script_name()),
+    AppDir = filename:dirname(filename:dirname(ThisEscript)),
+    WorkDir = filename:join([AppDir, "priv"]),
     main(["--dir", WorkDir]);
 main(["--dir", WorkDir]) ->
     ThisEscript = filename:absname(escript:script_name()),
     AppDir = filename:dirname(filename:dirname(ThisEscript)),
-    start_yaws(AppDir, WorkDir),
+    Port = 8080,
+    LogDir = filename:join([WorkDir, "logs"]),
+    start_yaws(AppDir, WorkDir, LogDir, Port),
     start_app(AppDir),
+    io:format("Work dir: ~s\n", [WorkDir]),
+    io:format("Log dir: ~s\n", [LogDir]),
+    io:format("http://localhost:~p\n", [Port]),
     timer:sleep(infinity).
 
-start_yaws(AppDir, WorkDir) ->
+start_yaws(AppDir, WorkDir, LogDir, Port) ->
     io:format("Start yaws...", []),
     Id = "accounter",
+    file:make_dir(LogDir),
     GconfList =
         [
          {include_dir,      [filename:join([AppDir, "include"])]},
          {ebin_dir,         [filename:join([AppDir, "ebin"])]},
-         {logdir,           filename:join([WorkDir, "logs"])},
+         {logdir,           LogDir},
          {copy_errlog,      true},
          {fail_on_bind_err, true},
          {resolve_hostname, false},
@@ -31,22 +44,23 @@ start_yaws(AppDir, WorkDir) ->
     SconfList =
         [
          {docroot, DocRoot},
-         {port, 8080},
+         {port, Port},
          {listen, {127,0,0,1}},
-         {tilde_allowed_scripts, false},
+         {dir_listings, true},
          {opaque,
           [
            {work_dir, WorkDir}
           ]}
         ],
     YawsEbinDir = filename:join([AppDir, "lib", "yaws", "ebin"]),
-    true = code:add_patha(YawsEbinDir),
-    ok = yaws:start_embedded(DocRoot, SconfList, GconfList, Id),
+    {true, YawsEbinDir} = {code:add_patha(YawsEbinDir), YawsEbinDir},
+    {ok, yaws_start} =
+        {yaws:start_embedded(DocRoot, SconfList, GconfList, Id), yaws_start},
     io:format("done.\n", []).
 
 start_app(AppDir) ->
     io:format("Start accounter...", []),
-    EbinDir = filename:join([AppDir, "ebin"]),
-    true = code:add_patha(EbinDir),
-    ok = application:start(accounter),
+    AppEbinDir = filename:join([AppDir, "ebin"]),
+    {true, AppEbinDir} = {code:add_patha(AppEbinDir), AppEbinDir},
+    {ok, accounter_start} = {application:start(accounter), accounter_start},
     io:format("done.\n", []).
