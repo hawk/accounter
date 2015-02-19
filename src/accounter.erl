@@ -15,13 +15,62 @@
 %% Library functions
 %%-------------------------------------------------------------------
 
-get_books_dir(A) ->
-    Error = fun() -> exit(no_books_dir) end,
-    filename:join([get_config(A, work_dir, Error), "books"]).
+get_work_dir(Args) ->
+    Error = fun() -> exit(no_work_dir) end,
+    get_config(Args, work_dir, Error).
+
+get_books_dir(Args) ->
+    filename:join([get_work_dir(Args), "books"]).
+
+get_config_file(Args) ->
+    filename:join([get_work_dir(Args), "config.xml"]).
+
+get_bindings(Args) ->
+    ConfigFile = get_config_file(Args),
+    Config = accounter_xml:parse_simple(ConfigFile),
+    FileContext = [ConfigFile, file],
+    Accounter = ?XML_LOOKUP(accounter, [Config], FileContext),
+    AccounterContext = [accounter | FileContext],
+    Bindings = ?XML_LOOKUP(bindings, Accounter, AccounterContext),
+    BindingsContext = [bindings | AccounterContext],
+    [format_binding(B, BindingsContext, ?FILE, ?LINE) || B <- Bindings].
+
+format_binding({binding, Binding}, BindingsContext, _, _) ->
+    BindingContext = [binding | BindingsContext],
+    Replace = ?XML_LOOKUP(replace, Binding, BindingContext),
+    With = ?XML_LOOKUP(with, Binding, BindingContext),
+    {Replace, With};
+format_binding([], _BindingsContext, _, _) ->
+    [];
+format_binding(Bindings, BindingsContext, File, Line) ->
+    accounter_xml:missing(binding, Bindings, BindingsContext, File, Line).
+
+lookup_binding(Replace, Bindings, File, Line) ->
+    Error =
+        fun() ->
+                exit({error,
+                      [missing_binding,
+                       Replace,
+                       Bindings,
+                       {file,File}, {line,Line}]})
+        end,
+    case lookup(Replace, Bindings, Error) of
+        "" ->
+            exit({error,
+                  [empty_binding,
+                   Replace,
+                   Bindings,
+                   {file,File}, {line,Line}]});
+        With ->
+            With
+    end.
 
 get_config(#arg{opaque = Opaque}, Key, Default) ->
     %% io:format("Opaque: ~p\n", [Opaque]),
-    case lists:keyfind(Key, 1, Opaque) of
+    lookup(Key, Opaque, Default).
+
+lookup(Key, List, Default) ->
+    case lists:keyfind(Key, 1, List) of
         false when is_function(Default) ->
             Default();
         false ->
@@ -30,8 +79,8 @@ get_config(#arg{opaque = Opaque}, Key, Default) ->
             Val
     end.
 
-get_var(#arg{} = A, Key, Default) ->
-   case yaws_api:queryvar(A, Key) of
+get_var(#arg{} = Args, Key, Default) ->
+   case yaws_api:queryvar(Args, Key) of
         {ok, Val} ->
             Val;
         undefined when is_function(Default) ->
@@ -40,9 +89,9 @@ get_var(#arg{} = A, Key, Default) ->
             Default
     end.
 
-get_book_name(A) ->
+get_book_name(Args) ->
     Fun = fun() ->
-                  BooksDir = get_books_dir(A),
+                  BooksDir = get_books_dir(Args),
                   case list_books(BooksDir) of
                       {ok , [Name | _]} ->
                     Name;
@@ -50,14 +99,14 @@ get_book_name(A) ->
                           integer_to_list(element(1, erlang:date()))
                   end
           end,
-    get_var(A, name, Fun).
+    get_var(Args, name, Fun).
 
-get_voucher_id(A, B) ->
-    get_var(A, id,
+get_voucher_id(Args, B) ->
+    get_var(Args, id,
             fun() -> lists:max([V#voucher.id || V <- B#book.vouchers]) + 1 end).
 
-get_field_delim(A) ->
-    case yaws_api:queryvar(A, delim) of
+get_field_delim(Args) ->
+    case yaws_api:queryvar(Args, delim) of
         {ok, [Delim | _]} ->
             Delim;
         _ ->
@@ -84,8 +133,8 @@ is_dir(BooksDir, Name) ->
             false
     end.
 
-forward_query(NewQuery, A) ->
-    OldQuery = [{Key, Val} || {Key, Val} <- yaws_api:parse_query(A),
+forward_query(NewQuery, Args) ->
+    OldQuery = [{Key, Val} || {Key, Val} <- yaws_api:parse_query(Args),
                               not lists:keymember(Key, 1, NewQuery)],
     to_query(NewQuery ++ OldQuery).
 
@@ -120,12 +169,12 @@ to_html(Atom) when is_atom(Atom) ->
     case Atom of
         true    -> "1";
         false   -> "0";
-        file    -> "Fil";
-        account -> "Konto";
-        voucher -> "Verifikation";
-        item    -> "Kontering";
-        budget  -> "Budget";
-        _       -> atom_to_list(Atom)
+        file    -> "Fil"; % BUGBUG
+        account -> "Konto";  % BUGBUG
+        voucher -> "Verifikation";  % BUGBUG
+        item    -> "Kontering";  % BUGBUG
+        budget  -> "Budget";  % BUGBUG
+        _       -> atom_to_list(Atom)  % BUGBUG
     end.
 
 to_html_string([195, Char | Tail]) ->
@@ -151,9 +200,9 @@ pad_right(Int, N) ->
 %% Import
 %%-------------------------------------------------------------------
 
-import_book(A, Name) ->
-    BooksDir = get_books_dir(A),
-    Delim = get_field_delim(A),
+import_book(Args, Name) ->
+    BooksDir = get_books_dir(Args),
+    Delim = get_field_delim(Args),
     import_book(BooksDir, Name, Delim).
 
 import_book(BooksDir, Name, Delim) ->
@@ -166,7 +215,9 @@ import_book(BooksDir, Name, Delim) ->
                           {[], [#error{type   = file,
                                        id     = filename:dirname(AbsName),
                                        value  = filename:basename(AbsName),
-                                       reason = Reason}]}
+                                       reason = Reason,
+                                       file   = ?FILE,
+                                       line   = ?LINE}]}
                   end
           end,
     Files = ["Kontotabell.txt",
@@ -253,7 +304,7 @@ tokens_to_accounts([[Id, Name, Type, Desc, OldId, Result, Balance] | Tail],
     tokens_to_accounts(Tail, [A | Accounts]);
 tokens_to_accounts([H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
-    error(account, Id, Arity, "bad arity, 7 expected");
+    error(account, Id, Arity, "bad arity, 7 expected", ?FILE, ?LINE);
 tokens_to_accounts([], Accounts) ->
     lists:reverse(Accounts).
 
@@ -261,15 +312,15 @@ tokens_to_items([["Verifikations_ID", "Konto_Nr", "Debet", "Kredit",
                   "Kommentar"] | Tail], Items) ->
     tokens_to_items(Tail, Items);
 tokens_to_items([[Vid, Aid, Debit, Credit, Remark] | Tail], Items) ->
-    I = (catch #item{voucher_id = to_int(item, Vid, Vid),
-                     account_id = to_int(item, Vid, Aid),
-                     amount     = {to_ore(item, Vid, Debit),
-                                   to_ore(item, Vid, Credit)},
-                     remark     = to_string(item, Vid, Remark)}),
+    I = #item{voucher_id = to_int(item, Vid, Vid),
+              account_id = to_int(item, Vid, Aid),
+              amount     = {to_ore(item, Vid, Debit),
+                            to_ore(item, Vid, Credit)},
+              remark     = to_string(item, Vid, Remark)},
     tokens_to_items(Tail, [I | Items]);
 tokens_to_items([H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
-    error(item, Id, Arity, "bad arity, 5 expected");
+    error(item, Id, Arity, "bad arity, 5 expected", ?FILE, ?LINE);
 tokens_to_items([], Items) ->
     lists:reverse(Items).
 
@@ -283,7 +334,7 @@ tokens_to_vouchers([[Id, Date, Text] | Tail], Vouchers) ->
     tokens_to_vouchers(Tail, [V | Vouchers]);
 tokens_to_vouchers([H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
-    error(voucher, Id, Arity, "bad arity, 3 expected");
+    error(voucher, Id, Arity, "bad arity, 3 expected", ?FILE, ?LINE);
 tokens_to_vouchers([], Vouchers) ->
     lists:reverse(Vouchers).
 
@@ -295,7 +346,7 @@ tokens_to_budgets([[Id, Balance] | Tail],  Budgets) ->
     tokens_to_budgets(Tail, [X | Budgets]);
 tokens_to_budgets([H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
-    error(budget, Id, Arity, "bad arity, 2 expected");
+    error(budget, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
 tokens_to_budgets([], Budgets) ->
     lists:reverse(Budgets).
 
@@ -307,14 +358,14 @@ tokens_to_types([[Id, Balance] | Tail],  Types) ->
     tokens_to_types(Tail, [X | Types]);
 tokens_to_types([H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
-    error(type, Id, Arity, "bad arity, 2 expected");
+    error(type, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
 tokens_to_types([], Types) ->
     lists:reverse(Types).
 
 to_int(Type, Id, Chars) ->
     case catch list_to_integer(Chars) of
         {'EXIT', _} ->
-            error(Type, Id, Chars, "bad integer");
+            error(Type, Id, Chars, "bad integer", ?FILE, ?LINE);
         Int ->
             Int
     end.
@@ -323,7 +374,7 @@ to_bool(Type, Id, Chars) ->
     case Chars of
         [$0] -> false;
         [$1] -> true;
-         _   -> error(Type, Id, Chars, "bad boolean")
+         _   -> error(Type, Id, Chars, "bad boolean", ?FILE, ?LINE)
     end.
 
 to_string(_Type, _Id, Chars) ->
@@ -338,7 +389,8 @@ to_ore(Type, Id, Chars) ->
         [Kr] ->
             100 * to_int(Type, Id, Kr);
         _A->
-            error(Type, Id, Chars, "bad value, should be like 123,45 kr")
+            error(Type, Id, Chars, "bad value, should be like 123,45 kr",
+                  ?FILE, ?LINE)
     end.
 
 to_date(Type, Id, Chars) ->
@@ -349,11 +401,12 @@ to_date(Type, Id, Chars) ->
              to_int(Type, Id, Day)};
         _ ->
             error(Type, Id, Chars,
-                  "bad date, should be like YYYY-MM-DD HH:MM:SS")
+                  "bad date, should be like YYYY-MM-DD HH:MM:SS", ?FILE, ?LINE)
     end.
 
-error(Type, Id, Chars, Reason) ->
-    throw(#error{type = Type, id = Id, value = Chars, reason = Reason}).
+error(Type, Id, Chars, Reason, File, Line) ->
+    throw(#error{type = Type, id = Id, value = Chars, reason = Reason,
+                 file = File, line = Line}).
 
 %%-------------------------------------------------------------------
 %% Adapt
@@ -386,16 +439,20 @@ adapt_accounts(Accounts, Errors) ->
      [#error{type   = account,
              id     = A#account.id,
              value  = A#account.balance,
-             reason = "account should be included in result or balance"}
+             reason = "account should be included in result or balance",
+             file   = ?FILE,
+             line   = ?LINE}
       || A <- Accounts, A#account.balance == A#account.result] ++
      Errors5
     }.
 
 check_missing(Tuples, IdPos, MandPos, Type, Reason, Errors) ->
     Errors2 = [#error{type   = Type,
-                     id     = element(IdPos, T),
-                     value  = element(MandPos, T),
-                     reason = Reason}
+                      id     = element(IdPos, T),
+                      value  = element(MandPos, T),
+                      reason = Reason,
+                      file   = ?FILE,
+                      line   = ?LINE}
               || T <- Tuples, element(MandPos, T) == ""],
     Errors2 ++ Errors.
 
@@ -411,10 +468,12 @@ check_duplicates2([E | Tail], IdPos, UniqPos, Accounts, Type,
 check_duplicates2([H, N | Tail], IdPos, UniqPos, Accounts, Type,
                   Reason, Sev, Errors)
   when element(UniqPos, H) == element(UniqPos, N) ->
-    E = #error{type = Type,
-               id = element(IdPos, H),
-               value = element(UniqPos, H),
-               reason = Reason},
+    E = #error{type   = Type,
+               id     = element(IdPos, H),
+               value  = element(UniqPos, H),
+               reason = Reason,
+               file   = ?FILE,
+               line   = ?LINE},
     Accounts2 = case Sev of
                     error   -> Accounts;
                     warning -> [H | Accounts]
@@ -440,23 +499,39 @@ do_adapt_vouchers([E | Tail], Vouchers, Errors) when is_record(E, error) ->
     do_adapt_vouchers(Tail, Vouchers, [E |  Errors]);
 do_adapt_vouchers([H, N | Tail], Vouchers, Errors)
   when N#voucher.id /= H#voucher.id + 1 ->
-    E = #error{type = voucher, id = N#voucher.id, value = N#voucher.id,
-               reason = "not subsequent id"},
+    E = #error{type   = voucher,
+               id     = N#voucher.id,
+               value  = N#voucher.id,
+               reason = "not subsequent id",
+               file   = ?FILE,
+               line   = ?LINE},
     do_adapt_vouchers([N | Tail], [H | Vouchers], [E |  Errors]);
 do_adapt_vouchers([H, N | Tail], Vouchers, Errors)
   when N#voucher.date < H#voucher.date ->
-    E = #error{type = voucher, id = N#voucher.id, value = N#voucher.date,
-               reason = "date should be larger than date of previous voucher"},
+    E = #error{type   = voucher,
+               id     = N#voucher.id,
+               value  = N#voucher.date,
+               reason = "date should be larger than date of previous voucher",
+               file   = ?FILE,
+               line   = ?LINE},
     do_adapt_vouchers([N | Tail], [H | Vouchers], [E |  Errors]);
 do_adapt_vouchers([H = {_Y, M, _D} | Tail], Vouchers, Errors)
   when M < 1; M > 12 ->
-    E = #error{type = voucher, id = H#voucher.id, value = M,
-               reason = "month not within range 1..12"},
+    E = #error{type    = voucher,
+               id     = H#voucher.id,
+               value  = M,
+               reason = "month not within range 1..12",
+               file   = ?FILE,
+               line   = ?LINE},
     do_adapt_vouchers(Tail, [H | Vouchers], [E |  Errors]);
 do_adapt_vouchers([H = {_Y, _M, D} | Tail], Vouchers, Errors)
   when D < 1; D > 12 ->
-    E = #error{type = voucher, id = H#voucher.id, value = D,
-               reason = "day not within range 1..12"},
+    E = #error{type   = voucher,
+               id     = H#voucher.id,
+               value  = D,
+               reason = "day not within range 1..12",
+               file   = ?FILE,
+               line   = ?LINE},
     do_adapt_vouchers(Tail, [H | Vouchers], [E |  Errors]);
 do_adapt_vouchers([H | Tail], Vouchers, Errors) ->
     do_adapt_vouchers(Tail, [H | Vouchers], Errors);
@@ -482,7 +557,9 @@ add_missing_item_accounts([I = #item{voucher_id = Vid,
             E = #error{type = item,
                        id     = Vid,
                        value  = Aid,
-                       reason = "reference to missing account"},
+                       reason = "reference to missing account",
+                       file   = ?FILE,
+                       line   = ?LINE},
             A = #account{id      = Aid,
                          name    = lists:concat(["ERROR_REF_BY_ITEM_",Aid]),
                          type    = "ERROR",
@@ -508,7 +585,9 @@ add_missing_item_vouchers([I = #item{voucher_id = Vid} | Tail],
             E = #error{type  = item,
                        id    = Vid,
                        value = Vid,
-                       reason = "reference to missing voucher"},
+                       reason = "reference to missing voucher",
+                       file   = ?FILE,
+                       line   = ?LINE},
             V = #voucher{id   = Vid,
                          date = erlang:date(),
                          text = "ERROR_REF_BY_ITEM"},
@@ -529,17 +608,24 @@ do_adapt_voucher_items(Accounts, [V | Tail], Items, Vouchers, Errors)
     CalcSum = fun(I, Acc) -> Acc + I#item.amount end,
     case lists:foldl(CalcSum, 0, VoucherItems) of
         _  when VoucherItems == [] ->
-            E = #error{type = voucher, id = Vid, value = Vid,
-                       reason = "voucher should have items"},
+            E = #error{type = voucher,
+                       id = Vid,
+                       value = Vid,
+                       reason = "voucher should have items",
+                       file   = ?FILE,
+                       line   = ?LINE},
             do_adapt_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
                                    [E | Errors2]);
         0 ->
             do_adapt_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
                                    Errors2);
         NonZero ->
-            E = #error{type = item, id = Vid, value = from_ore(NonZero),
-                       reason = "sum of all items "
-                       "must be 0 within the voucher"},
+            E = #error{type = item,
+                       id = Vid,
+                       value = from_ore(NonZero),
+                       reason = "sum of all items must be 0 within the voucher",
+                       file   = ?FILE,
+                       line   = ?LINE},
             do_adapt_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
                                    [E | Errors2])
     end;
@@ -550,10 +636,14 @@ adapt_items([I | Tail], Vid, Match, Rem, Errors)
   when I#item.voucher_id == Vid ->
     case I#item.amount of
         {0, 0} ->
-            E = #error{type = item, id = I#item.voucher_id, value = 0,
+            E = #error{type = item,
+                       id = I#item.voucher_id,
+                       value = 0,
                        reason = "bad debit and credit of account " ++
-                       integer_to_list(I#item.account_id) ++
-                       ", only one should be 0,00 kr"},
+                           integer_to_list(I#item.account_id) ++
+                           ", only one should be 0,00 kr",
+                       file   = ?FILE,
+                       line   = ?LINE},
             adapt_items(Tail, Vid, [I#item{amount = 0} | Match], Rem,
                         [E | Errors]);
         {Ore, 0} ->
@@ -563,10 +653,14 @@ adapt_items([I | Tail], Vid, Match, Rem, Errors)
             adapt_items(Tail, Vid, [I#item{amount = -Ore} | Match], Rem,
                         Errors);
         {Debit, Credit} ->
-            E = #error{type = item, id = I#item.voucher_id, value = 0,
+            E = #error{type = item,
+                       id = I#item.voucher_id,
+                       value = 0,
                        reason = "bad debit and credit of account " ++
-                       integer_to_list(I#item.account_id) ++
-                       ", one must be 0,00 kr"},
+                           integer_to_list(I#item.account_id) ++
+                           ", one must be 0,00 kr",
+                       file   = ?FILE,
+                       line   = ?LINE},
             adapt_items(Tail, Vid, [I#item{amount = Debit - Credit} | Match],
                         Rem, [E | Errors])
         end;
@@ -586,8 +680,12 @@ do_adapt_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
                  Accounts, Errors) ->
     case [A || A <- Accounts, A#account.id == Aid] of
         [] ->
-            E = #error{type = budget, id = Aid, value = Aid,
-                       reason = "reference to missing account"},
+            E = #error{type = budget,
+                       id = Aid,
+                       value = Aid,
+                       reason = "reference to missing account",
+                       file   = ?FILE,
+                       line   = ?LINE},
             A = #account{id      = Aid,
                          name    = lists:concat(["BUDGET_ERROR_",Aid]),
                          type    = "ERROR",
@@ -604,9 +702,13 @@ do_adapt_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
                 true ->
                     do_adapt_budgets(Tail, [A2 | Accounts2], Errors);
                 false ->
-                    E = #error{type = budget, id = Aid, value = Aid,
+                    E = #error{type = budget,
+                               id = Aid,
+                               value = Aid,
                                reason = "reference to a account that"
-                                        " not is included in result"},
+                                        " not is included in result",
+                               file   = ?FILE,
+                               line   = ?LINE},
                     do_adapt_budgets(Tail, [A2 | Accounts2], [E | Errors])
             end
     end;
@@ -617,202 +719,202 @@ do_adapt_budgets([], Accounts, Errors) ->
 %% Export
 %%-------------------------------------------------------------------
 
-export_book(BooksDir, Book, Delim) ->
-    {AccountChars, VoucherChars, ItemChars,
-     BudgetChars, TypeChars, ErrorChars} =
-        book_to_chars(Book, Delim),
-    Dir = filename:join([BooksDir, Book#book.name]),
-    AccountFile = filename:join([Dir, "Kontotabell.txt"]),
-    ok = file:write_file(AccountFile, list_to_binary(AccountChars)),
-    VoucherFile = filename:join([Dir, "Verifikationer.txt"]),
-    ok = file:write_file(VoucherFile, list_to_binary(VoucherChars)),
-    ItemFile = filename:join([Dir, "Kontering.txt"]),
-    ok = file:write_file(ItemFile, list_to_binary(ItemChars)),
-    BudgetFile = filename:join([Dir, "Budget.txt"]),
-    ok = file:write_file(BudgetFile, list_to_binary(BudgetChars)),
-    TypeFile = filename:join([Dir, "Kontotyper.txt"]),
-    ok = file:write_file(TypeFile, list_to_binary(TypeChars)),
-    ErrorFile = filename:join([Dir, "Felmeddelanden.txt"]),
-    ok = file:write_file(ErrorFile, list_to_binary(ErrorChars)),
-    {ok, Dir}.
-
-book_to_chars(B, Delim) ->
-    {[accounts_header(Delim), accounts_to_chars(B#book.accounts, Delim)],
-     [vouchers_header(Delim), vouchers_to_chars(B#book.vouchers, Delim)],
-     [items_header(Delim),    voucher_items_to_chars(B#book.vouchers, Delim)],
-     [budgets_header(Delim),  budgets_to_chars(B#book.accounts, Delim)],
-     [types_header(Delim),    types_to_chars(B#book.types, Delim)],
-     [errors_header(Delim),   errors_to_chars(B#book.errors, Delim)]
-    }.
-
-accounts_to_chars(Accounts, Delim) ->
-    [
-     [
-      from_int(Id), Delim,
-      from_string(Name), Delim,
-      from_string(Type), Delim,
-      from_string(Desc), Delim,
-      from_int(OldId), Delim,
-      from_bool(Result), Delim,
-      from_bool(Balance), $\r, $\n
-     ] || #account{id = Id,
-                   name = Name,
-                   type = Type,
-                   desc = Desc,
-                   old_id = OldId,
-                   result = Result,
-                   balance = Balance} <- Accounts].
-
-accounts_header(Delim) ->
-    [
-     from_string("Konto_Nr"), Delim,
-     from_string("Konto_namn"), Delim,
-     from_string("Konto_Typ"), Delim,
-     from_string("K_beskrivning"), Delim,
-     from_string("Gamla konto_Nr"), Delim,
-     from_string("resultat"), Delim,
-     from_string("balans"), $\r, $\n
-    ].
-
-vouchers_to_chars(Vouchers, Delim) ->
-    [
-     [
-      from_int(Id), Delim,
-      from_date(Date), Delim,
-      from_string(Text), $\r, $\n
-     ] || #voucher{id   = Id,
-                   date = Date,
-                   text = Text} <- Vouchers].
-
-vouchers_header(Delim) ->
-    [
-     from_string("Verifikations_ID"), Delim,
-     from_string("V_Datum"), Delim,
-     from_string("V_Text"), $\r, $\n
-    ].
-
-voucher_items_to_chars(Vouchers, Delim) ->
-    [items_to_chars(V#voucher.items, Delim) || V <- Vouchers].
-
-items_to_chars(Items, Delim) ->
-    [
-     [
-      from_int(Vid), Delim,
-      from_int(Aid), Delim,
-      from_ore(Ore, Delim), Delim,
-      from_string(Remark), $\r, $\n
-     ] || #item{voucher_id = Vid,
-                account_id = Aid,
-                amount     = Ore,
-                remark     = Remark} <- Items].
-
-items_header(Delim) ->
-    [
-     from_string("Verifikations_ID"), Delim,
-     from_string("Konto_Nr"), Delim,
-     from_string("Debet"), Delim,
-     from_string("Kredit"), Delim,
-     from_string("Kommentar"), $\r, $\n
-    ].
-
-budgets_to_chars(Accounts, Delim) ->
-    [
-     [from_int(Id), Delim,
-      from_int(Bal), $\r, $\n
-     ] || #account{id     = Id,
-                   budget = Bal} <- Accounts, Bal /= undefined
-    ].
-
-budgets_header(Delim) ->
-    [
-     from_string("Konto_Nr"), Delim,
-     from_string("Konto_saldo"), $\r, $\n
-    ].
-
-types_to_chars(Types, Delim) ->
-    [
-     [from_string(Name), Delim,
-      from_bool(Neg), $\r, $\n
-     ] || #account_type{name    = Name,
-                        negate  = Neg} <- Types
-    ].
-
-types_header(Delim) ->
-    [
-     from_string("Konto_typ"), Delim,
-     from_string("Konto_negativ"), $\r, $\n
-    ].
-
-errors_to_chars(Errors, Delim) ->
-    [
-     [
-      from_any(Type), Delim,
-      from_any(Id), Delim,
-      from_any(Val), Delim,
-      from_string(Reason), $\r, $\n
-     ] || #error{type   = Type,
-                 id     = Id,
-                 value  = Val,
-                 reason = Reason} <- Errors].
-
-errors_header(Delim) ->
-    [
-     from_string("Typ"), Delim,
-     from_string("Id"), Delim,
-     from_string("Ajabaja"), Delim,
-     from_string("Beskrivning"), $\r, $\n
-    ].
-
-from_any(Int) when is_integer(Int) ->
-    from_int(Int);
-from_any(Date = {_, _, _}) ->
-    from_date(Date);
-from_any(String) when is_list(String) ->
-    from_string(String);
-from_any(Atom) when is_atom(Atom) ->
-    case Atom of
-        file    -> from_string("Fil");
-        account -> from_string("Konto");
-        voucher -> from_string("Verifikation");
-        item    -> from_string("Kontering");
-        budget  -> from_string("Budget");
-        type    -> from_string("Kontotyp");
-        _       -> from_string(atom_to_list(Atom))
-    end.
-
-from_int(Int) ->
-    integer_to_list(Int).
-
-from_string([]) ->
-    [];
-from_string(String) ->
-    [$", String, $"].
-
-from_date({Year, Month, Day}) ->
-    [
-     from_int(Year),
-     $-,
-     from_int(Month),
-     $-,
-     from_int(Day)
-     | " 00:00:00"
-    ].
-
-from_bool(Bool) ->
-    case Bool of
-        false -> $0;
-        true  -> $1
-    end.
-
-from_ore(Ore, Delim) ->
-    if
-        Ore > 0 -> % Debit
-            [from_ore(Ore), Delim, from_ore(0)];
-        Ore < 0 -> % Credit
-            [from_ore(0), Delim, from_ore(-Ore)];
-        Ore == 0 ->
-            [from_ore(0), Delim, from_ore(0)]
-    end.
-
+%% export_book(BooksDir, Book, Delim) ->
+%%     {AccountChars, VoucherChars, ItemChars,
+%%      BudgetChars, TypeChars, ErrorChars} =
+%%         book_to_chars(Book, Delim),
+%%     Dir = filename:join([BooksDir, Book#book.name]),
+%%     AccountFile = filename:join([Dir, "Kontotabell.txt"]),
+%%     ok = file:write_file(AccountFile, list_to_binary(AccountChars)),
+%%     VoucherFile = filename:join([Dir, "Verifikationer.txt"]),
+%%     ok = file:write_file(VoucherFile, list_to_binary(VoucherChars)),
+%%     ItemFile = filename:join([Dir, "Kontering.txt"]),
+%%     ok = file:write_file(ItemFile, list_to_binary(ItemChars)),
+%%     BudgetFile = filename:join([Dir, "Budget.txt"]),
+%%     ok = file:write_file(BudgetFile, list_to_binary(BudgetChars)),
+%%     TypeFile = filename:join([Dir, "Kontotyper.txt"]),
+%%     ok = file:write_file(TypeFile, list_to_binary(TypeChars)),
+%%     ErrorFile = filename:join([Dir, "Felmeddelanden.txt"]),
+%%     ok = file:write_file(ErrorFile, list_to_binary(ErrorChars)),
+%%     {ok, Dir}.
+%%
+%% book_to_chars(B, Delim) ->
+%%     {[accounts_header(Delim), accounts_to_chars(B#book.accounts, Delim)],
+%%      [vouchers_header(Delim), vouchers_to_chars(B#book.vouchers, Delim)],
+%%      [items_header(Delim),    voucher_items_to_chars(B#book.vouchers, Delim)],
+%%      [budgets_header(Delim),  budgets_to_chars(B#book.accounts, Delim)],
+%%      [types_header(Delim),    types_to_chars(B#book.types, Delim)],
+%%      [errors_header(Delim),   errors_to_chars(B#book.errors, Delim)]
+%%     }.
+%%
+%% accounts_to_chars(Accounts, Delim) ->
+%%     [
+%%      [
+%%       from_int(Id), Delim,
+%%       from_string(Name), Delim,
+%%       from_string(Type), Delim,
+%%       from_string(Desc), Delim,
+%%       from_int(OldId), Delim,
+%%       from_bool(Result), Delim,
+%%       from_bool(Balance), $\r, $\n
+%%      ] || #account{id = Id,
+%%                    name = Name,
+%%                    type = Type,
+%%                    desc = Desc,
+%%                    old_id = OldId,
+%%                    result = Result,
+%%                    balance = Balance} <- Accounts].
+%%
+%% accounts_header(Delim) ->
+%%     [
+%%      from_string("Konto_Nr"), Delim,
+%%      from_string("Konto_namn"), Delim,
+%%      from_string("Konto_Typ"), Delim,
+%%      from_string("K_beskrivning"), Delim,
+%%      from_string("Gamla konto_Nr"), Delim,
+%%      from_string("resultat"), Delim,
+%%      from_string("balans"), $\r, $\n
+%%     ].
+%%
+%% vouchers_to_chars(Vouchers, Delim) ->
+%%     [
+%%      [
+%%       from_int(Id), Delim,
+%%       from_date(Date), Delim,
+%%       from_string(Text), $\r, $\n
+%%      ] || #voucher{id   = Id,
+%%                    date = Date,
+%%                    text = Text} <- Vouchers].
+%%
+%% vouchers_header(Delim) ->
+%%     [
+%%      from_string("Verifikations_ID"), Delim,
+%%      from_string("V_Datum"), Delim,
+%%      from_string("V_Text"), $\r, $\n
+%%     ].
+%%
+%% voucher_items_to_chars(Vouchers, Delim) ->
+%%     [items_to_chars(V#voucher.items, Delim) || V <- Vouchers].
+%%
+%% items_to_chars(Items, Delim) ->
+%%     [
+%%      [
+%%       from_int(Vid), Delim,
+%%       from_int(Aid), Delim,
+%%       from_ore(Ore, Delim), Delim,
+%%       from_string(Remark), $\r, $\n
+%%      ] || #item{voucher_id = Vid,
+%%                 account_id = Aid,
+%%                 amount     = Ore,
+%%                 remark     = Remark} <- Items].
+%%
+%% items_header(Delim) ->
+%%     [
+%%      from_string("Verifikations_ID"), Delim,
+%%      from_string("Konto_Nr"), Delim,
+%%      from_string("Debet"), Delim,
+%%      from_string("Kredit"), Delim,
+%%      from_string("Kommentar"), $\r, $\n
+%%     ].
+%%
+%% budgets_to_chars(Accounts, Delim) ->
+%%     [
+%%      [from_int(Id), Delim,
+%%       from_int(Bal), $\r, $\n
+%%      ] || #account{id     = Id,
+%%                    budget = Bal} <- Accounts, Bal /= undefined
+%%     ].
+%%
+%% budgets_header(Delim) ->
+%%     [
+%%      from_string("Konto_Nr"), Delim,
+%%      from_string("Konto_saldo"), $\r, $\n
+%%     ].
+%%
+%% types_to_chars(Types, Delim) ->
+%%     [
+%%      [from_string(Name), Delim,
+%%       from_bool(Neg), $\r, $\n
+%%      ] || #account_type{name    = Name,
+%%                         negate  = Neg} <- Types
+%%     ].
+%%
+%% types_header(Delim) ->
+%%     [
+%%      from_string("Konto_typ"), Delim,
+%%      from_string("Konto_negativ"), $\r, $\n
+%%     ].
+%%
+%% errors_to_chars(Errors, Delim) ->
+%%     [
+%%      [
+%%       from_any(Type), Delim,
+%%       from_any(Id), Delim,
+%%       from_any(Val), Delim,
+%%       from_string(Reason), $\r, $\n
+%%      ] || #error{type   = Type,
+%%                  id     = Id,
+%%                  value  = Val,
+%%                  reason = Reason} <- Errors].
+%%
+%% errors_header(Delim) ->
+%%     [
+%%      from_string("Typ"), Delim,
+%%      from_string("Id"), Delim,
+%%      from_string("Ajabaja"), Delim,
+%%      from_string("Beskrivning"), $\r, $\n
+%%     ].
+%%
+%% from_any(Int) when is_integer(Int) ->
+%%     from_int(Int);
+%% from_any(Date = {_, _, _}) ->
+%%     from_date(Date);
+%% from_any(String) when is_list(String) ->
+%%     from_string(String);
+%% from_any(Atom) when is_atom(Atom) ->
+%%     case Atom of
+%%         file    -> from_string("Fil");
+%%         account -> from_string("Konto");
+%%         voucher -> from_string("Verifikation");
+%%         item    -> from_string("Kontering");
+%%         budget  -> from_string("Budget");
+%%         type    -> from_string("Kontotyp");
+%%         _       -> from_string(atom_to_list(Atom))
+%%     end.
+%%
+%% from_int(Int) ->
+%%     integer_to_list(Int).
+%%
+%% from_string([]) ->
+%%     [];
+%% from_string(String) ->
+%%     [$", String, $"].
+%%
+%% from_date({Year, Month, Day}) ->
+%%     [
+%%      from_int(Year),
+%%      $-,
+%%      from_int(Month),
+%%      $-,
+%%      from_int(Day)
+%%      | " 00:00:00"
+%%     ].
+%%
+%% from_bool(Bool) ->
+%%     case Bool of
+%%         false -> $0;
+%%         true  -> $1
+%%     end.
+%%
+%% from_ore(Ore, Delim) ->
+%%     if
+%%         Ore > 0 -> % Debit
+%%             [from_ore(Ore), Delim, from_ore(0)];
+%%         Ore < 0 -> % Credit
+%%             [from_ore(0), Delim, from_ore(-Ore)];
+%%         Ore == 0 ->
+%%             [from_ore(0), Delim, from_ore(0)]
+%%     end.
+%%
 from_ore(Ore) ->
     [integer_to_list(Ore div 100), $,, pad_right(Ore rem 100, 2), " kr"].

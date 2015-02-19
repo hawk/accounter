@@ -3,6 +3,12 @@
 %% See the file "LICENSE" for information on usage and redistribution
 %% of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
+-define(XML_LOOKUP(Tag, List, Context),
+        accounter_xml:lookup(Tag, List, Context, ?FILE, ?LINE)).
+
+-define(BINDING(Tag, List),
+        accounter:lookup_binding(Tag, List, ?FILE, ?LINE)).
+
 -record(book,
         {name,
          accounts,
@@ -20,6 +26,10 @@
          balance,
          budget}).
 
+-record(account_type,
+        {name,
+         negate}).
+
 -record(item,
         {voucher_id,
          account_id,
@@ -36,12 +46,10 @@
         {account_id,
          account_balance}).
 
--record(account_type,
-        {name,
-         negate}).
-
 -record(error,
         {type,
          id,
          value,
-         reason}).
+         reason,
+         file,
+         line}).

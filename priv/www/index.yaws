@@ -1,29 +1,34 @@
+<html>
+
+<erl>
+
 %% Copyright 2015 Hakan Mattsson
 %%
 %% See the file "LICENSE" for information on usage and redistribution
 %% of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-<html>
-
-<erl>
-
+-include_lib("accounter/include/accounter.hrl").
 -include_lib("kernel/include/file.hrl").
 
-out(A) ->
-%%    Cwd = filename:dirname(A#arg.fullpath),
+out(Args) ->
+    %% Cwd = filename:dirname(Args#arg.fullpath),
+    Bindings = accounter:get_bindings(Args),
+    AssociationL = ?BINDING("ASSOCIATION", Bindings),
+    ChooseYearL = ?BINDING("CHOOSE_YEAR", Bindings),
     [
-     {ssi, "header.ssi",[],[]},
-     {ssi, "buttons.ssi",[],[]},
+     {ssi, "header.ssi", "%%", Bindings},
+     {ssi, "buttons.ssi", "%%", Bindings},
+     {bindings, Bindings},
      {ehtml,
       [
-       {h2,[], {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring - v&auml;lj ett bokf&ouml;rings&aring;r"}},
-       gen_index(A)
+       {h2,[], [AssociationL, " - ", ChooseYearL]},
+       gen_index(Args)
       ]},
-     {ssi, "footer.ssi",[],[]}
+     {ssi, "footer.ssi","%%", Bindings}
     ].
 
-gen_index(A) ->
-    BooksDir = accounter:get_books_dir(A),
+gen_index(Args) ->
+    BooksDir = accounter:get_books_dir(Args),
     case file:list_dir(BooksDir) of
         {ok, Names} ->
             Rev = fun(X, Y) -> X > Y end,

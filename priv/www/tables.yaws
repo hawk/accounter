@@ -1,64 +1,74 @@
+<html>
+
+<erl>
+
 %% Copyright 2015 Hakan Mattsson
 %%
 %% See the file "LICENSE" for information on usage and redistribution
 %% of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-<html>
-
-<erl>
-
 -include_lib("accounter/include/accounter.hrl").
 
-out(A) ->
-    %% Cwd = filename:dirname(A#arg.fullpath),
-    Name = accounter:get_book_name(A),
-    Book = accounter:import_book(A, Name),
-    Delim = accounter:get_field_delim(A),
+out(Args) ->
+    %% Cwd = filename:dirname(Args#arg.fullpath),
+    Name = accounter:get_book_name(Args),
+    Book = accounter:import_book(Args, Name),
+    Bindings = accounter:get_bindings(Args),
+    AssociationL = ?BINDING("ASSOCIATION", Bindings),
+    TablesL = ?BINDING("TABLES", Bindings),
+    Delim = accounter:get_field_delim(Args),
     {AccountChars, VoucherChars, ItemChars, BudgetChars,
      TypeChars, ErrorChars} =
         accounter:book_to_chars(Book, Delim),
     [
-     {ssi, "header.ssi",[],[]},
-     {ssi, "buttons.ssi",[],[]},
+     {ssi, "header.ssi", "%%", Bindings},
+     {ssi, "buttons.ssi", "%%", Bindings},
+     {bindings, Bindings},
      {ehtml,
       [
-       {h2,[], {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
-                Book#book.name ++ "&nbsp;- tabeller"}},
-       gen_index(A),
-       gen_table(Book, "errors",   "Felmeddelanden.txt", ErrorChars),
-       gen_table(Book, "budget",   "Budget.txt", BudgetChars),
-       gen_table(Book, "vouchers", "Verifikationer.txt", VoucherChars),
-       gen_table(Book, "items",    "Kontering.txt", ItemChars),
-       gen_table(Book, "accounts", "Kontotabell.txt", AccountChars),
-       gen_table(Book, "types",    "Kontotyper.txt", TypeChars)
+       {h2,[], {pre_html, [AssociationL, " ", Book#book.name, " - ", TablesL]}},
+       gen_index(Args, Bindings),
+       gen_table(Book, Bindings, "errors",   "Felmeddelanden.txt", ErrorChars),
+       gen_table(Book, Bindings, "budget",   "Budget.txt", BudgetChars),
+       gen_table(Book, Bindings, "vouchers", "Verifikationer.txt", VoucherChars),
+       gen_table(Book, Bindings, "items",    "Kontering.txt", ItemChars),
+       gen_table(Book, Bindings, "accounts", "Kontotabell.txt", AccountChars),
+       gen_table(Book, Bindings, "types",    "Kontotyper.txt", TypeChars)
       ]},
-     {ssi, "footer.ssi",[],[]}
+     {ssi, "footer.ssi","%%", Bindings}
     ].
 
-gen_index(A) ->
+gen_index(Args, Bindings) ->
+    ErrorsL = ?BINDING("ERRORS", Bindings),
+    BudgetL = ?BINDING("BUDGET", Bindings),
+    VouchersL = ?BINDING("VOUCHERS", Bindings),
+    ItemsL = ?BINDING("ITEMS", Bindings),
+    AccountsL = ?BINDING("ACCOUNTS", Bindings),
+    AccountTypesL = ?BINDING("ACCOUNT_TYPES", Bindings),
     [{ul, [],
       [
        {li,[], [{p,[], [{a, [{href, "#errors"}],
-                         {pre_html, accounter:to_html("Felmeddelanden")}}]}]},
+                         {pre_html, accounter:to_html(ErrorsL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#budget"}],
-                         {pre_html, accounter:to_html("Budget")}}]}]},
+                         {pre_html, accounter:to_html(BudgetL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#vouchers"}],
-                         {pre_html, accounter:to_html("Verifikationer")}}]}]},
+                         {pre_html, accounter:to_html(VouchersL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#items"}],
-                         {pre_html, accounter:to_html("Konteringar")}}]}]},
+                         {pre_html, accounter:to_html(ItemsL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#accounts"}],
-                         {pre_html, accounter:to_html("Konton")}}]}]},
+                         {pre_html, accounter:to_html(AccountsL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#types"}],
-                         {pre_html, accounter:to_html("Kontotyper")}}]}]}
+                         {pre_html, accounter:to_html(AccountTypesL)}}]}]}
       ]}
     ].
 
-gen_table(B, Type, FileName, Chars) ->
-    [{br},
+gen_table(Book, Bindings, Type, FileName, Chars) ->
+    AssociationL = ?BINDING("ASSOCIATION", Bindings),
+    [
+     {br},
      {hr},
      {h2,[], {a, [{name, Type}],
-              {pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++
-               B#book.name ++ "&nbsp;- " ++ FileName}}},
+              {pre_html, [AssociationL, " ", Book#book.name, " - ", FileName]}}},
      {'div', [{class, box}, {bgcolor,"#B6b6a5"}],
       {pre, [], {pre_html, accounter:to_html(Chars)}}}
     ].

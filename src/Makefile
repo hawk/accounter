@@ -11,11 +11,13 @@ ERL_MODULES = \
 	accounter \
 	accounter_app \
 	accounter_sup \
-	accounter_vsn
+	accounter_xml
 
 ERL_FILES=$(ERL_MODULES:%=%.erl)
 EBIN_FILES=$(ERL_MODULES:%=../ebin/%.$(EMULATOR)) ../ebin/accounter.app
 APP_DIR=$(shell dirname $(PWD))
+
+ERLC_FLAGS += -I $(APP_DIR)/../accounter/include
 
 all: $(EBIN_FILES)
 

@@ -1,50 +1,48 @@
+<html>
+
+<erl>
+
 %% Copyright 2015 Hakan Mattsson
 %%
 %% See the file "LICENSE" for information on usage and redistribution
 %% of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-<html>
-
-<erl>
-
 -include_lib("accounter/include/accounter.hrl").
 
-out(A) ->
-    Cwd  = filename:dirname(A#arg.fullpath),
-    Name = accounter:get_book_name(A),
-    Book = accounter:import_book(A, Name),
-    Dir = filename:join([Cwd, "books", Name]),
+out(Args) ->
+    Cwd  = filename:dirname(Args#arg.fullpath),
+    Name = accounter:get_book_name(Args),
+    Book = accounter:import_book(Args, Name),
+    BooksDir = accounter:get_books_dir(Args),
+    Dir = filename:join([BooksDir, Name]),
     Delim = ";",
-    V = parse_voucher(A, Book, Delim),
+    V = parse_voucher(Args, Delim),
     export_voucher(Dir, V, Delim),
     Vid2 = accounter:to_html(V#voucher.id),
-   {redirect_local, ["/reports.yaws", accounter:forward_query([], A),
-                     "#voucher_", Vid2]}.
+    {redirect_local, ["/reports.yaws", accounter:forward_query([], Args),
+                      "#voucher_", Vid2]}.
 
-%%
-%%     {ssi, "header.ssi",[],[]},
-%%     {ssi, "buttons.ssi",[],[]},
-%%     {ehtml,
-%%      [{h2,[],
-%%      [{pre_html, "Kanotklubben Str&ouml;mstararnas bokf&ouml;ring " ++ Name ++ " - Sparad till fil"},
-%%       {p, [], {a, [{href, ["reports.yaws", accounter:forward_query([], A), "#voucher_", Vid2]}],
-%%                {pre_html, [accounter:to_html("Grundbok - "), Vid2]}}}
-%%      ]}]},
-%%     {ssi, "footer.ssi",[],[]}
-%%    ].
-
-parse_voucher(A, B, Delim) when record(B, book), list(Delim) ->
+parse_voucher(Args, Delim) when list(Delim) ->
     [{"voucher",Vid},
      {"date",Date},
-     {"text",Text} | Items] = yaws_api:parse_post(A),
+     {"text",Text} | Items] = yaws_api:parse_post(Args),
     VoucherTokens = lists:concat([Vid, Delim, Date, Delim, Text]),
-    [V] = accounter:tokens_to_vouchers(accounter:to_tokens(VoucherTokens,
-                                                   hd(Delim)), []),
-    VoucherItems = parse_items(Items, Vid, Delim),
-    {VoucherItems2, _Rem, _Errors} =
-        accounter:adapt_items(VoucherItems, V#voucher.id, [], [], []),
-    %%VoucherItems3 = [I || I <- VoucherItems2, I#item.amount /= 0],
-    V#voucher{items = VoucherItems2}.
+    case accounter:tokens_to_vouchers(accounter:to_tokens(VoucherTokens,
+                                                          hd(Delim)), []) of
+        [#voucher{} = V] ->
+            VoucherItems = parse_items(Items, Vid, Delim),
+            {VoucherItems2, _Rem, _Errors} =
+                accounter:adapt_items(VoucherItems, V#voucher.id, [], [], []),
+            %% VoucherItems3 = [I || I <- VoucherItems2, I#item.amount /= 0],
+            V#voucher{items = VoucherItems2};
+        [#error{type   = Type,
+                id     = Id,
+                value  = Val,
+                reason = Reason,
+                file   = File,
+                line   = Line}] ->
+            exit({error, [Type, Id, Val, Reason, File, Line]})
+    end.
 
 parse_items([{"remark", ""}, {"debit", _}, {"credit", _},
              {"account", _} | Items], Vid, Delim) ->
@@ -56,8 +54,17 @@ parse_items([{"remark", Remark}, {"debit", Debit}, {"credit", Credit},
              {"account", Account} | Items], Vid, Delim) ->
     ItemTokens = lists:concat([Vid, Delim, Account, Delim, Debit,
                                Delim, Credit, Delim, Remark]),
-    [I] = accounter:tokens_to_items(accounter:to_tokens(ItemTokens, hd(Delim)), []),
-    [I | parse_items(Items, Vid, Delim)];
+    case accounter:tokens_to_items(accounter:to_tokens(ItemTokens, hd(Delim)), []) of
+        [#item{} = I] ->
+            [I | parse_items(Items, Vid, Delim)];
+        [#error{type   = Type,
+                id     = Id,
+                value  = Val,
+                reason = Reason,
+                file   = File,
+                line   = Line}] ->
+            exit({error, [Type, Id, Val, Reason, File, Line]})
+    end;
 parse_items([], _Vid, _Delim) ->
     [].
 

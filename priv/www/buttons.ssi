@@ -9,15 +9,15 @@
           <td> <font size ="3"> <a href="http://www.kanot.com">Kanot.com</a> </font> </td>
         </tr>
         <tr border="1">
-          <td> <font size ="3"> <a href="index.yaws">V&auml;lj bokf&ouml;rings&aring;r</a> </font> </td>
-          <td> <font size ="3"> <a href="register.yaws">Kontera</a> </font> </td>
-          <td> <font size ="3"> <a href="budget.yaws">Budget*</a> </font> </td>
-          <td> <font size ="3"> <a href="accounts.yaws">Konton*</a> </font> </td>
+          <td> <font size ="3"> <a href="index.yaws">%%CHOOSE_YEAR%%</a> </font> </td>
+          <td> <font size ="3"> <a href="register.yaws">%%REGISTER%%</a> </font> </td>
+          <td> <font size ="3"> <a href="budget.yaws">%%BUDGET%%</a> </font> </td>
+          <td> <font size ="3"> <a href="accounts.yaws">%%ACCOUNTS%%</a> </font> </td>
        </tr>
        <tr border="1">
-          <td> <font size ="3"> <a href="reports.yaws">Rapporter</a> </font> </td>
-          <td> <font size ="3"> <a href="tables.yaws">Tabeller</a> </font> </td>
-          <td> <font size ="3"> <a href="books">Filer*</a> </font> </td>
+          <td> <font size ="3"> <a href="reports.yaws">%%REPORTS%%</a> </font> </td>
+          <td> <font size ="3"> <a href="tables.yaws">%%TABLES%%</a> </font> </td>
+          <td> <font size ="3"> &nbsp; </font> </td>
           <td> <font size ="3"> &nbsp; </font> </td>
        </tr>
      </table>
