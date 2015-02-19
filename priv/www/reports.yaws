@@ -11,7 +11,7 @@
 
 out(Args) ->
     Name = accounter:get_book_name(Args),
-    Book = accounter:import_book(Args, Name),
+    Book = accounter_csv:import_book(Args, Name),
     Report = accounter:get_var(Args, report, "all"),
     Bindings = accounter:get_bindings(Args),
     gen_reports(Args, Bindings, Book, Name, Report).
@@ -174,7 +174,7 @@ gen_errors(Bindings, B) when record(B, book) ->
         [
          {tr, [{border,1}],
           [
-           {td, [], {pre_html, accounter:to_html(Type)}},
+           {td, [], {pre_html, ?BINDING(string:to_upper(atom_to_list(Type)), Bindings)}},
            {td, [], {a, [{href, "#" ++ key_to_ref(Type, Id) }],
                      {pre_html, accounter:to_html(Id)}}},
            {td, [], {pre_html, accounter:to_html(Val)}},

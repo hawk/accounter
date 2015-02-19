@@ -3,7 +3,7 @@
     <td>
       <table bgcolor="#B6b6a5" border="2" cellpadding="5" cellspacing="0" height="100" width="95%">
         <tr border="2">
-          <td> <font size ="3"> <a href="http://www.postgirot.se">Postgirot.se</a> </font> </td>
+          <td> <font size ="3"> <a href="http://www.plusgirot.se">Plusgirot.se</a> </font> </td>
           <td> <font size ="3"> <a href="http://www.forspaddling.com">Forspaddling.com</a> </font> </td>
           <td> <font size ="3"> <a href="http://www.kkss.se/Forsguiden/forsguiden.html">Forsguiden</a> </font> </td>
           <td> <font size ="3"> <a href="http://www.kanot.com">Kanot.com</a> </font> </td>
@@ -11,19 +11,19 @@
         <tr border="1">
           <td> <font size ="3"> <a href="index.yaws">%%CHOOSE_YEAR%%</a> </font> </td>
           <td> <font size ="3"> <a href="register.yaws">%%REGISTER%%</a> </font> </td>
-          <td> <font size ="3"> <a href="budget.yaws">%%BUDGET%%</a> </font> </td>
-          <td> <font size ="3"> <a href="accounts.yaws">%%ACCOUNTS%%</a> </font> </td>
+          <td> <font size ="3"> <a href="reports.yaws">%%REPORTS%%</a> </font> </td>
+          <td> <font size ="3"> &nbsp; </font> </td>
        </tr>
        <tr border="1">
-          <td> <font size ="3"> <a href="reports.yaws">%%REPORTS%%</a> </font> </td>
           <td> <font size ="3"> <a href="tables.yaws">%%TABLES%%</a> </font> </td>
-          <td> <font size ="3"> &nbsp; </font> </td>
+          <td> <font size ="3"> <a href="budget.yaws">(%%BUDGET%%)</a> </font> </td>
+          <td> <font size ="3"> <a href="accounts.yaws">(%%ACCOUNTS%%)</a> </font> </td>
           <td> <font size ="3"> &nbsp; </font> </td>
        </tr>
      </table>
     </td>
     <td>
-      <a href="http://www.kkss.se"><img border=0 src="icons/kksslogo.jpg" alt="kksslogo" width="100" align=right"></a>
+      <a href="%%LOGO_REF%%"><img border=0 src="%%LOGO_ICON%%" alt="%%ASSOCIATION%%" width="100" align=right"></a>
     </td>
   </tr>
 </table>

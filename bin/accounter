@@ -43,10 +43,11 @@ start_yaws(AppDir, WorkDir, LogDir, Port) ->
     DocRoot = filename:join([AppDir, "priv", "www"]),
     SconfList =
         [
-         {docroot, DocRoot},
-         {port, Port},
          {listen, {127,0,0,1}},
-         {dir_listings, true},
+         {port, Port},
+         {docroot, DocRoot},
+         {xtra_docroots, [WorkDir]},
+         {dir_listings, false},
          {opaque,
           [
            {work_dir, WorkDir}

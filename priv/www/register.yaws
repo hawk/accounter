@@ -11,7 +11,7 @@
 
 out(Args) ->
     Name = accounter:get_book_name(Args),
-    Book = accounter:import_book(Args, Name),
+    Book = accounter_csv:import_book(Args, Name),
     Bindings = accounter:get_bindings(Args),
     AssociationL = ?BINDING("ASSOCIATION", Bindings),
     RegisterL = ?BINDING("REGISTER", Bindings),
@@ -20,9 +20,7 @@ out(Args) ->
     DebitL = ?BINDING("DEBIT", Bindings),
     CreditL = ?BINDING("CREDIT", Bindings),
     AccountL = ?BINDING("ACCOUNT", Bindings),
-    NextFreeVid = lists:max([0] ++ [V#voucher.id || V <- Book#book.vouchers]) + 1,
-
-    Book#book.accounts,
+    NextFreeVid = get_latest_voucher_id(Args, Book) + 1,
     #voucher{id = Vid, date = Date, text = Text, items = Items} =
         ensure_voucher(Args, Book, NextFreeVid),
     HtmlVid = accounter:to_html(Vid),
@@ -93,6 +91,9 @@ out(Args) ->
          }]}]},
      {ssi, "footer.ssi","%%", Bindings}
     ].
+
+get_latest_voucher_id(Args, #book{vouchers = Vouchers} = B) ->
+    lists:max([0 | [V#voucher.id || V <- Vouchers]]).
 
 ensure_voucher(Args, B, NextFreeVid) when integer(NextFreeVid), record(B, book) ->
     Postgirot = 1020, %% BUGBUG

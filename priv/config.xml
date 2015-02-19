@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <accounter>
+  <association>Kanotklubben Strömstararnas bokföring</association>
+  <logo_ref>http://www.kkss.se</logo_ref>
+  <logo_icon>icons/kksslogo.jpg</logo_icon>
   <bindings>
     <binding><replace>ACCOUNT</replace><with>Konto</with></binding>
     <binding><replace>ACCOUNTS</replace><with>Konton</with></binding>
     <binding><replace>ACCOUNT_TYPES</replace><with>Kontotyper</with></binding>
-    <binding><replace>ASSOCIATION</replace><with>Kanotklubben Strömstararnas bokföring</with></binding>
     <binding><replace>BALANCE</replace><with>Saldo</with></binding>
     <binding><replace>BALANCE_REPORT</replace><with>Balansrapport</with></binding>
     <binding><replace>BUDGET</replace><with>Budget</with></binding>
@@ -18,11 +20,12 @@
     <binding><replace>DIFFERENCE</replace><with>Diff</with></binding>
     <binding><replace>ERROR_MSGS</replace><with>Felmeddelanden</with></binding>
     <binding><replace>ERRORS</replace><with>Ajabaja</with></binding>
+    <binding><replace>FILE</replace><with>Fil</with></binding>
     <binding><replace>ID</replace><with>Id</with></binding>
+    <binding><replace>ITEM</replace><with>Artikel</with></binding>
     <binding><replace>ITEMS</replace><with>Artiklar</with></binding>
     <binding><replace>JOURNAL</replace><with>Grundbok</with></binding>
     <binding><replace>LEDGER</replace><with>Huvudbok</with></binding>
-    <binding><replace>LOGO</replace><with>Logotype</with></binding>
     <binding><replace>NO_ERROR_MSGS</replace><with>Inga felmeddelanden</with></binding>
     <binding><replace>NOTE</replace><with>Anmärkning</with></binding>
     <binding><replace>NUMBER_OF</replace><with>Antal</with></binding>

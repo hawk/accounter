@@ -12,14 +12,13 @@
 out(Args) ->
     %% Cwd = filename:dirname(Args#arg.fullpath),
     Name = accounter:get_book_name(Args),
-    Book = accounter:import_book(Args, Name),
+    Book = accounter_csv:import_book(Args, Name),
     Bindings = accounter:get_bindings(Args),
     AssociationL = ?BINDING("ASSOCIATION", Bindings),
     TablesL = ?BINDING("TABLES", Bindings),
-    Delim = accounter:get_field_delim(Args),
-    {AccountChars, VoucherChars, ItemChars, BudgetChars,
-     TypeChars, ErrorChars} =
-        accounter:book_to_chars(Book, Delim),
+    Delim = accounter_csv:get_field_delim(Args),
+    {AccountChars, VoucherChars, ItemChars, BudgetChars, TypeChars, ErrorChars} =
+        accounter_csv:book_to_chars(Bindings, Book, Delim),
     [
      {ssi, "header.ssi", "%%", Bindings},
      {ssi, "buttons.ssi", "%%", Bindings},
@@ -39,7 +38,7 @@ out(Args) ->
     ].
 
 gen_index(Args, Bindings) ->
-    ErrorsL = ?BINDING("ERRORS", Bindings),
+    ErrorsMsgsL = ?BINDING("ERROR_MSGS", Bindings),
     BudgetL = ?BINDING("BUDGET", Bindings),
     VouchersL = ?BINDING("VOUCHERS", Bindings),
     ItemsL = ?BINDING("ITEMS", Bindings),
@@ -48,7 +47,7 @@ gen_index(Args, Bindings) ->
     [{ul, [],
       [
        {li,[], [{p,[], [{a, [{href, "#errors"}],
-                         {pre_html, accounter:to_html(ErrorsL)}}]}]},
+                         {pre_html, accounter:to_html(ErrorsMsgsL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#budget"}],
                          {pre_html, accounter:to_html(BudgetL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#vouchers"}],
