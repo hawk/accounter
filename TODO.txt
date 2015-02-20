@@ -1,12 +1,3 @@
-labels
-  voucher - verifikation
-  .
-  .
-  .
-
-icons
-  logo
-
 currency
   kr/ore
 

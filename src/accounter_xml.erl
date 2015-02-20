@@ -51,11 +51,11 @@ to_simple(#xmlComment{value = _Text}) ->
 %% Strips off leading and trailing white spaces
 strip([]) ->
     [];
-strip([Char | Text]) when Char==$\s; Char==$\n; Char==$\t ->
+strip([Char | Text]) when Char=:= $\s; Char=:= $\n; Char=:= $\t ->
     strip(Text);
 strip(Text) ->
     strip(Text,[],[]).
-strip([Char | Text], TAcc, SAcc) when Char==$\s; Char==$\n; Char==$\t ->
+strip([Char | Text], TAcc, SAcc) when Char=:= $\s; Char=:= $\n; Char=:= $\t ->
     strip(Text, TAcc, [Char | SAcc]);
 strip([Char |Text], TAcc, SAcc) ->
     strip(Text, [Char | SAcc ++ TAcc], []);

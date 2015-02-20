@@ -22,12 +22,12 @@
     <binding><replace>ERRORS</replace><with>Ajabaja</with></binding>
     <binding><replace>FILE</replace><with>Fil</with></binding>
     <binding><replace>ID</replace><with>Id</with></binding>
-    <binding><replace>ITEM</replace><with>Artikel</with></binding>
-    <binding><replace>ITEMS</replace><with>Artiklar</with></binding>
+    <binding><replace>ITEM</replace><with>Händelse</with></binding>
+    <binding><replace>ITEMS</replace><with>Händelser</with></binding>
     <binding><replace>JOURNAL</replace><with>Grundbok</with></binding>
     <binding><replace>LEDGER</replace><with>Huvudbok</with></binding>
     <binding><replace>NO_ERROR_MSGS</replace><with>Inga felmeddelanden</with></binding>
-    <binding><replace>NOTE</replace><with>Anmärkning</with></binding>
+    <binding><replace>NOTE</replace><with>Beskrivning</with></binding>
     <binding><replace>NUMBER_OF</replace><with>Antal</with></binding>
     <binding><replace>PRINTOUT</replace><with>Utskrift</with></binding>
     <binding><replace>REGISTER</replace><with>Registrera</with></binding>
@@ -36,8 +36,8 @@
     <binding><replace>RESULT_REPORT</replace><with>Resultatrapport</with></binding>
     <binding><replace>SAVE</replace><with>Spara</with></binding>
     <binding><replace>SUM</replace><with>Summa</with></binding>
+    <binding><replace>SUMMARY</replace><with>Sammanfattning</with></binding>
     <binding><replace>TABLES</replace><with>Tabeller</with></binding>
-    <binding><replace>TEXT</replace><with>Text</with></binding>
     <binding><replace>TYPE</replace><with>Typ</with></binding>
     <binding><replace>TOTAL</replace><with>Total</with></binding>
     <binding><replace>VOUCHER</replace><with>Verif</with></binding>

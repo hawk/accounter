@@ -5,7 +5,7 @@
 
 -module(accounter_csv).
 -export([
-         get_field_delim/1,         
+         get_field_delim/1,
          import_book/2,
          to_tokens/2, adapt_items/5,
          tokens_to_vouchers/2, tokens_to_items/2,
@@ -86,7 +86,7 @@ to_tokens(Chars, Delim) ->
 to_tokens([], _Delim, Tokens) ->
     lists:reverse(Tokens);
 to_tokens([DoubleQuote = $" | Chars], Delim, Tokens) ->
-    Pred = fun(Char) -> Char /= DoubleQuote end,
+    Pred = fun(Char) -> Char =/= DoubleQuote end,
     case lists:splitwith(Pred, Chars) of
         {Token, [DoubleQuote | Tail]} ->
             trim_tokens(skip_spaces(Tail), Delim, [Token | Tokens]);
@@ -94,7 +94,7 @@ to_tokens([DoubleQuote = $" | Chars], Delim, Tokens) ->
             trim_tokens([], Delim, [Token | Tokens])
         end;
 to_tokens(Chars, Delim, Tokens) ->
-    Pred = fun(Char) -> Char /= Delim end,
+    Pred = fun(Char) -> Char =/= Delim end,
     {Token, Tail} = lists:splitwith(Pred, Chars),
     trim_tokens(Tail, Delim, [Token | Tokens]).
 
@@ -278,7 +278,7 @@ adapt_accounts(Accounts, Errors) ->
              reason = "account should be included in result or balance",
              file   = ?FILE,
              line   = ?LINE}
-      || A <- Accounts, A#account.balance == A#account.result] ++
+      || A <- Accounts, A#account.balance =:=  A#account.result] ++
      Errors5
     }.
 
@@ -289,7 +289,7 @@ check_missing(Tuples, IdPos, MandPos, Type, Reason, Errors) ->
                       reason = Reason,
                       file   = ?FILE,
                       line   = ?LINE}
-              || T <- Tuples, element(MandPos, T) == ""],
+              || T <- Tuples, element(MandPos, T) =:=  ""],
     Errors2 ++ Errors.
 
 check_duplicates(Tuples, IdPos, UniqPos, Type, Reason, Sev, Errors) ->
@@ -303,7 +303,7 @@ check_duplicates2([E | Tail], IdPos, UniqPos, Accounts, Type,
                       Reason, Sev, [E | Errors]);
 check_duplicates2([H, N | Tail], IdPos, UniqPos, Accounts, Type,
                   Reason, Sev, Errors)
-  when element(UniqPos, H) == element(UniqPos, N) ->
+  when element(UniqPos, H) =:=  element(UniqPos, N) ->
     E = #error{type   = Type,
                id     = element(IdPos, H),
                value  = element(UniqPos, H),
@@ -334,7 +334,7 @@ adapt_vouchers(Vouchers, Errors) ->
 do_adapt_vouchers([E | Tail], Vouchers, Errors) when is_record(E, error) ->
     do_adapt_vouchers(Tail, Vouchers, [E |  Errors]);
 do_adapt_vouchers([H, N | Tail], Vouchers, Errors)
-  when N#voucher.id /= H#voucher.id + 1 ->
+  when N#voucher.id =/= H#voucher.id + 1 ->
     E = #error{type   = voucher,
                id     = N#voucher.id,
                value  = N#voucher.id,
@@ -437,13 +437,13 @@ add_missing_item_vouchers([], Vouchers, Items, Errors) ->
     {Vouchers, lists:reverse(Items), Errors}.
 
 do_adapt_voucher_items(Accounts, [V | Tail], Items, Vouchers, Errors)
-  when V#voucher.items == undefined ->
+  when V#voucher.items =:=  undefined ->
     Vid = V#voucher.id,
     {VoucherItems, Items2, Errors2} = adapt_items(Items, Vid, [], [], Errors),
     V2 = V#voucher{items = VoucherItems},
     CalcSum = fun(I, Acc) -> Acc + I#item.amount end,
     case lists:foldl(CalcSum, 0, VoucherItems) of
-        _  when VoucherItems == [] ->
+        _  when VoucherItems =:=  [] ->
             E = #error{type = voucher,
                        id = Vid,
                        value = Vid,
@@ -469,7 +469,7 @@ do_adapt_voucher_items(_Accounts, [], [], Vouchers, Errors) ->
     {Vouchers, Errors}.
 
 adapt_items([I | Tail], Vid, Match, Rem, Errors)
-  when I#item.voucher_id == Vid ->
+  when I#item.voucher_id =:=  Vid ->
     case I#item.amount of
         {0, 0} ->
             E = #error{type = item,
@@ -514,7 +514,7 @@ adapt_budgets(Accounts, Budgets, Errors) ->
 
 do_adapt_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
                  Accounts, Errors) ->
-    case [A || A <- Accounts, A#account.id == Aid] of
+    case [A || A <- Accounts, A#account.id =:=  Aid] of
         [] ->
             E = #error{type = budget,
                        id = Aid,
@@ -532,7 +532,7 @@ do_adapt_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
                          budget = Bal},
             do_adapt_budgets(Tail, [A | Accounts], [E | Errors]);
         [A] ->
-            Accounts2 = [X || X <- Accounts, X#account.id /= Aid],
+            Accounts2 = [X || X <- Accounts, X#account.id =/= Aid],
             A2 = A#account{budget = Bal},
             case A2#account.result of
                 true ->
@@ -658,7 +658,7 @@ budgets_to_chars(Accounts, Delim) ->
      [from_int(Id), Delim,
       from_int(Bal), $\r, $\n
      ] || #account{id     = Id,
-                   budget = Bal} <- Accounts, Bal /= undefined
+                   budget = Bal} <- Accounts, Bal =/= undefined
     ].
 
 budgets_header(Delim) ->
@@ -738,7 +738,7 @@ from_ore(Ore, Delim) ->
             [from_ore(Ore), Delim, from_ore(0)];
         Ore < 0 -> % Credit
             [from_ore(0), Delim, from_ore(-Ore)];
-        Ore == 0 ->
+        Ore =:=  0 ->
             [from_ore(0), Delim, from_ore(0)]
     end.
 

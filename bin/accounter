@@ -11,23 +11,22 @@
 main([]) ->
     ThisEscript = filename:absname(escript:script_name()),
     AppDir = filename:dirname(filename:dirname(ThisEscript)),
-    WorkDir = filename:join([AppDir, "priv"]),
+    WorkDir = filename:join([AppDir, "examples", "kkss"]),
     main(["--dir", WorkDir]);
 main(["--dir", WorkDir]) ->
     ThisEscript = filename:absname(escript:script_name()),
     AppDir = filename:dirname(filename:dirname(ThisEscript)),
     Port = 8080,
-    LogDir = filename:join([WorkDir, "logs"]),
-    start_yaws(AppDir, WorkDir, LogDir, Port),
+    start_yaws(AppDir, WorkDir, Port),
     start_app(AppDir),
     io:format("Work dir: ~s\n", [WorkDir]),
-    io:format("Log dir: ~s\n", [LogDir]),
     io:format("http://localhost:~p\n", [Port]),
-    timer:sleep(infinity).
+    wait().
 
-start_yaws(AppDir, WorkDir, LogDir, Port) ->
+start_yaws(AppDir, WorkDir, Port) ->
     io:format("Start yaws...", []),
     Id = "accounter",
+    LogDir = filename:join([WorkDir, "logs"]),
     file:make_dir(LogDir),
     GconfList =
         [
@@ -40,12 +39,12 @@ start_yaws(AppDir, WorkDir, LogDir, Port) ->
          {trace,            false},
          {id, Id}
         ],
-    DocRoot = filename:join([AppDir, "priv", "www"]),
+    DocRoot = filename:join([AppDir, "www"]),
     SconfList =
         [
          {listen, {127,0,0,1}},
          {port, Port},
-         {docroot, DocRoot},
+         %% {docroot, DocRoot},
          {xtra_docroots, [WorkDir]},
          {dir_listings, false},
          {opaque,
@@ -65,3 +64,10 @@ start_app(AppDir) ->
     {true, AppEbinDir} = {code:add_patha(AppEbinDir), AppEbinDir},
     {ok, accounter_start} = {application:start(accounter), accounter_start},
     io:format("done.\n", []).
+
+wait() ->
+    case io:get_line("Enter quit to exit \n") of
+        "q" ++_ -> halt(0);
+        "e" ++_ -> halt(0);
+        _       -> wait()
+    end.

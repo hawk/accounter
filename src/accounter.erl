@@ -133,7 +133,7 @@ list_books(BooksDir) ->
 is_dir(BooksDir, Name) ->
     DirName = filename:join([BooksDir, Name]),
     case file:read_file_info(DirName) of
-        {ok, FI} when FI#file_info.type == directory ->
+        {ok, FI} when FI#file_info.type =:= directory ->
             true;
         _ ->
             false
