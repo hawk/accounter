@@ -57,6 +57,7 @@ out(Args) ->
                                           [{option, [{value, HtmlVid}], HtmlVid},
                                            {option, [{value, HtmlNextVid}, selected], HtmlNextVid}]}},
                     {td, [{align,left}], {input, [{name, date},{type, text}, {size," 10"},
+                                                  {id, datepicker},
                                                   {value,accounter:to_html(Date)}]}},
                     {td, [{align,left}], {input, [{name, text},{type, text}, {size, "50"},
                                                   {value,Text}]}}
