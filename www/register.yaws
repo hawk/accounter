@@ -1,0 +1,130 @@
+<html>
+
+<erl>
+
+%% Copyright 2015 Hakan Mattsson
+%%
+%% See the file "LICENSE" for information on usage and redistribution
+%% of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+-include_lib("accounter/include/accounter.hrl").
+
+out(Args) ->
+    Name = accounter:get_book_name(Args),
+    Book = accounter_csv:import_book(Args, Name),
+    Bindings = accounter:get_bindings(Args),
+    AssociationL = ?BINDING("ASSOCIATION", Bindings),
+    RegisterL = ?BINDING("REGISTER", Bindings),
+    SaveL = ?BINDING("SAVE", Bindings),
+    VoucherL = ?BINDING("VOUCHER", Bindings),
+    DateL = "YYYY-MM-DD",
+    DebitL = ?BINDING("DEBIT", Bindings),
+    CreditL = ?BINDING("CREDIT", Bindings),
+    AccountL = ?BINDING("ACCOUNT", Bindings),
+    SummaryL = ?BINDING("SUMMARY", Bindings),
+    NoteL = ?BINDING("NOTE", Bindings),
+    NextFreeVid = get_latest_voucher_id(Args, Book) + 1,
+    #voucher{id = Vid, date = Date, text = Text, items = Items} =
+        ensure_voucher(Args, Book, NextFreeVid),
+    HtmlVid = accounter:to_html(Vid),
+    HtmlNextVid = accounter:to_html(NextFreeVid),
+    [
+     {ssi, "header.ssi", "%%", Bindings},
+     {ssi, "buttons.ssi", "%%", Bindings},
+     {bindings, Bindings},
+     {ehtml,
+      [{h2,[],
+        [{pre_html, [AssociationL, " ", Name, " - ", RegisterL]},
+         {form,
+          [{method,post},
+           {name,register},
+           {action, "register_post.yaws"},
+           {autocomplete,"off"}],
+
+          [{table, [{border,0},{width,"100%"}],
+            [{tr, [],
+              [{td, [],
+                {input, [{type,submit},{value,accounter:to_html(SaveL)}]}},
+               {td, [],
+                {table, [{border,2}, {cellspacing,1},{cellpadding,1}],
+                 [{tr, [{border,0}],
+                   [{th, [{align,left}], {pre_html, accounter:to_html(VoucherL)}},
+                    {th, [{align,left}], {pre_html, accounter:to_html(DateL)}},
+                    {th, [{align,left}], {pre_html, accounter:to_html(SummaryL)}}
+                   ]},
+                  {tr, [],
+                   [{td, [{align,left}], {select, [{name,voucher}],
+                                          [{option, [{value, HtmlVid}], HtmlVid},
+                                           {option, [{value, HtmlNextVid}, selected], HtmlNextVid}]}},
+                    {td, [{align,left}], {input, [{name, date},{type, text}, {size," 10"},
+                                                  {value,accounter:to_html(Date)}]}},
+                    {td, [{align,left}], {input, [{name, text},{type, text}, {size, "50"},
+                                                  {value,Text}]}}
+                   ]}
+                 ]}}]}]},
+           {p, [], []},
+           {table, [{border,2}, {cellspacing,1},{cellpadding,1}],
+            [{tr, [{border,0}],
+              [{th, [{align,left}], {pre_html, accounter:to_html(NoteL)}},
+               {th, [{align,left}], {pre_html, accounter:to_html(DebitL)}},
+               {th, [{align,left}], {pre_html, accounter:to_html(CreditL)}},
+               {th, [{align,left}], {pre_html, accounter:to_html(AccountL)}}
+              ]} |
+             [{tr, [],
+               case I#item.amount > 0 of
+                   true ->
+                       [{td, [{align,left}], {input, [{name,remark},{type,text},{size,"50"},
+                                                      {value,accounter:to_html(I#item.remark)}]}},
+                        {td, [{align,left}], {input, [{name,debit},{type,text},{size,"10"},
+                                                      {value,accounter:to_html({kr, I#item.amount})}]}},
+                        {td, [{align,left}], {input, [{name,credit},{type,text},{size,"10"},
+                                                      {value,accounter:to_html({kr, 0})}]}},
+                        {td, [{align,left}], account_selection(I#item.account_id, Book)}];
+                   false ->
+                       [{td, [{align,left}], {input, [{name,remark},{type,text},{size,"50"},
+                                                      {value,accounter:to_html(I#item.remark)}]}},
+                        {td, [{align,left}], {input, [{name,debit},{type,text},{size,"10"},
+                                                      {value,accounter:to_html({kr, 0})}]}},
+                        {td, [{align,left}], {input, [{name,credit},{type,text},{size,"10"},
+                                                      {value,accounter:to_html({kr, abs(I#item.amount)})}]}},
+                        {td, [{align,left}], account_selection(I#item.account_id, Book)}]
+               end
+              } || I <- Items]
+            ]}]
+         }]}]},
+     {ssi, "footer.ssi","%%", Bindings}
+    ].
+
+get_latest_voucher_id(Args, #book{vouchers = Vouchers} = B) ->
+    lists:max([0 | [V#voucher.id || V <- Vouchers]]).
+
+ensure_voucher(Args, B, NextFreeVid) when is_record(B, book), is_integer(NextFreeVid) ->
+    Postgirot = 1020, %% BUGBUG
+    Date = "",
+    ExtraItems = lists:duplicate(20, #item{account_id = Postgirot, amount = 0, remark = ""}),
+    case yaws_api:queryvar(Args, id) of
+        {ok, Id} ->
+            Vid = list_to_integer(Id),
+            case [V || V <- B#book.vouchers, V#voucher.id =:= Vid] of
+                [] ->
+                    #voucher{id = NextFreeVid, date = Date, text = "", items = ExtraItems};
+                [V] ->
+                    V#voucher{items = V#voucher.items ++ ExtraItems}
+            end;
+        undefined ->
+            #voucher{id = NextFreeVid, date = Date, text = "", items = ExtraItems}
+    end.
+
+account_selection(SelectedAid, B)  when is_integer(SelectedAid), is_record(B, book) ->
+    Preselected = fun(Aid) when Aid =:= SelectedAid -> [selected]; (_) -> [] end,
+    {select,
+     [{name,account}],
+     [{option,
+       [{value,accounter:to_html(A#account.id)} | Preselected(A#account.id)],
+       {pre_html, [accounter:to_html(A#account.id), accounter:to_html(" - "),
+                   accounter:to_html(A#account.name), accounter:to_html(" - "),
+                   accounter:to_html(A#account.type)]}} || A <- B#book.accounts]}.
+
+</erl>
+
+</html>
