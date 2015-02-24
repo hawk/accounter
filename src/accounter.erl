@@ -9,7 +9,7 @@
          get_books_dir/1,get_book_name/1,
          get_bindings/1, lookup_binding/4,
          get_var/3, forward_query/2,
-         to_html/1, pad_right/2
+         pad_right/2, from_ore/1, from_ore/2
         ]).
 
 -include_lib("kernel/include/file.hrl").
@@ -159,39 +159,22 @@ to_query2([{Key, Val} | Tail]) when is_list(Key), is_list(Val) ->
             [Key, "=", Val, "&", to_query2(Tail)]
     end.
 
-to_html({kr, Int}) when is_integer(Int) ->
-    [integer_to_list(Int div 100), ",",
-     pad_right(abs(Int) rem 100, 2),
-     " kr"];
-to_html(Int) when is_integer(Int) ->
-    integer_to_list(Int);
-to_html({Year, Month, Day}) ->
-    [pad_right(Year, 4), "-", pad_right(Month, 2), "-", pad_right(Day, 2)];
-%%to_html("") ->
-%%    "&nbsp;";
-to_html(String) when is_list(String) ->
-    to_html_string(String);
-to_html(Atom) when is_atom(Atom) ->
-    case Atom of
-        true    -> "1";
-        false   -> "0"
-    end.
-
-to_html_string([195, Char | Tail]) ->
-    case Char of
-        165 -> ["&aring;" | to_html_string(Tail)]; % aa
-        164 -> ["&auml;"  | to_html_string(Tail)]; % ae
-        182 -> ["&ouml;"  | to_html_string(Tail)]; % oe
-
-        133 -> ["&Aring;" | to_html_string(Tail)]; % AA
-        132 -> ["&Auml;"  | to_html_string(Tail)]; % AE
-        150 -> ["&Ouml;"  | to_html_string(Tail)]; % OE
-        _   -> [195, Char | to_html_string(Tail)]
-    end;
-to_html_string([Char | Tail]) ->
-    [Char | to_html_string(Tail)];
-to_html_string([]) ->
-    [].
+%%-------------------------------------------------------------------
+%% Paddings
 
 pad_right(Int, N) ->
     string:right(integer_to_list(Int), N, $0).
+
+from_ore(Ore, Delim) ->
+    if
+        Ore > 0 -> % Debit
+            [from_ore(Ore), Delim, from_ore(0)];
+        Ore < 0 -> % Credit
+            [from_ore(0), Delim, from_ore(-Ore)];
+        Ore =:=  0 ->
+            [from_ore(0), Delim, from_ore(0)]
+    end.
+
+from_ore(Ore) ->
+    [integer_to_list(Ore div 100), $,,
+     accounter:pad_right(Ore rem 100, 2), " kr"].

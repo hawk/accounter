@@ -4,8 +4,12 @@
   {modules, [
              accounter,
              accounter_app,
+             accounter_check,
+             accounter_csv,
+             accounter_html,
              accounter_sup,
-             accounter_vsn
+             accounter_vsn,
+             accounter_xml
             ]},
   {registered, [accounter_sup]},
   {applications, [kernel, stdlib, yaws]},

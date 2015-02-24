@@ -10,7 +10,9 @@ VSN=$(ACCOUNTER_VSN)
 ERL_MODULES = \
 	accounter \
 	accounter_app \
+	accounter_check \
 	accounter_csv \
+	accounter_html \
 	accounter_sup \
 	accounter_xml
 

@@ -26,8 +26,8 @@ out(Args) ->
     NextFreeVid = get_latest_voucher_id(Args, Book) + 1,
     #voucher{id = Vid, date = Date, text = Text, items = Items} =
         ensure_voucher(Args, Book, NextFreeVid),
-    HtmlVid = accounter:to_html(Vid),
-    HtmlNextVid = accounter:to_html(NextFreeVid),
+    HtmlVid = ?TO_HTML(Vid),
+    HtmlNextVid = ?TO_HTML(NextFreeVid),
     [
      {ssi, "header.ssi", "%%", Bindings},
      {ssi, "buttons.ssi", "%%", Bindings},
@@ -44,13 +44,13 @@ out(Args) ->
           [{table, [{border,0},{width,"100%"}],
             [{tr, [],
               [{td, [],
-                {input, [{type,submit},{value,accounter:to_html(SaveL)}]}},
+                {input, [{type,submit},{value,?TO_HTML(SaveL)}]}},
                {td, [],
                 {table, [{border,2}, {cellspacing,1},{cellpadding,1}],
                  [{tr, [{border,0}],
-                   [{th, [{align,left}], {pre_html, accounter:to_html(VoucherL)}},
-                    {th, [{align,left}], {pre_html, accounter:to_html(DateL)}},
-                    {th, [{align,left}], {pre_html, accounter:to_html(SummaryL)}}
+                   [{th, [{align,left}], {pre_html, ?TO_HTML(VoucherL)}},
+                    {th, [{align,left}], {pre_html, ?TO_HTML(DateL)}},
+                    {th, [{align,left}], {pre_html, ?TO_HTML(SummaryL)}}
                    ]},
                   {tr, [],
                    [{td, [{align,left}], {select, [{name,voucher}],
@@ -58,7 +58,7 @@ out(Args) ->
                                            {option, [{value, HtmlNextVid}, selected], HtmlNextVid}]}},
                     {td, [{align,left}], {input, [{name, date},{type, text}, {size," 10"},
                                                   {id, datepicker},
-                                                  {value,accounter:to_html(Date)}]}},
+                                                  {value,?TO_HTML(Date)}]}},
                     {td, [{align,left}], {input, [{name, text},{type, text}, {size, "50"},
                                                   {value,Text}]}}
                    ]}
@@ -66,28 +66,28 @@ out(Args) ->
            {p, [], []},
            {table, [{border,2}, {cellspacing,1},{cellpadding,1}],
             [{tr, [{border,0}],
-              [{th, [{align,left}], {pre_html, accounter:to_html(NoteL)}},
-               {th, [{align,left}], {pre_html, accounter:to_html(DebitL)}},
-               {th, [{align,left}], {pre_html, accounter:to_html(CreditL)}},
-               {th, [{align,left}], {pre_html, accounter:to_html(AccountL)}}
+              [{th, [{align,left}], {pre_html, ?TO_HTML(NoteL)}},
+               {th, [{align,left}], {pre_html, ?TO_HTML(DebitL)}},
+               {th, [{align,left}], {pre_html, ?TO_HTML(CreditL)}},
+               {th, [{align,left}], {pre_html, ?TO_HTML(AccountL)}}
               ]} |
              [{tr, [],
                case I#item.amount > 0 of
                    true ->
                        [{td, [{align,left}], {input, [{name,remark},{type,text},{size,"50"},
-                                                      {value,accounter:to_html(I#item.remark)}]}},
+                                                      {value,?TO_HTML(I#item.remark)}]}},
                         {td, [{align,left}], {input, [{name,debit},{type,text},{size,"10"},
-                                                      {value,accounter:to_html({kr, I#item.amount})}]}},
+                                                      {value,?TO_HTML({kr, I#item.amount})}]}},
                         {td, [{align,left}], {input, [{name,credit},{type,text},{size,"10"},
-                                                      {value,accounter:to_html({kr, 0})}]}},
+                                                      {value,?TO_HTML({kr, 0})}]}},
                         {td, [{align,left}], account_selection(I#item.account_id, Book)}];
                    false ->
                        [{td, [{align,left}], {input, [{name,remark},{type,text},{size,"50"},
-                                                      {value,accounter:to_html(I#item.remark)}]}},
+                                                      {value,?TO_HTML(I#item.remark)}]}},
                         {td, [{align,left}], {input, [{name,debit},{type,text},{size,"10"},
-                                                      {value,accounter:to_html({kr, 0})}]}},
+                                                      {value,?TO_HTML({kr, 0})}]}},
                         {td, [{align,left}], {input, [{name,credit},{type,text},{size,"10"},
-                                                      {value,accounter:to_html({kr, abs(I#item.amount)})}]}},
+                                                      {value,?TO_HTML({kr, abs(I#item.amount)})}]}},
                         {td, [{align,left}], account_selection(I#item.account_id, Book)}]
                end
               } || I <- Items]
@@ -121,10 +121,10 @@ account_selection(SelectedAid, B)  when is_integer(SelectedAid), is_record(B, bo
     {select,
      [{name,account}],
      [{option,
-       [{value,accounter:to_html(A#account.id)} | Preselected(A#account.id)],
-       {pre_html, [accounter:to_html(A#account.id), accounter:to_html(" - "),
-                   accounter:to_html(A#account.name), accounter:to_html(" - "),
-                   accounter:to_html(A#account.type)]}} || A <- B#book.accounts]}.
+       [{value,?TO_HTML(A#account.id)} | Preselected(A#account.id)],
+       {pre_html, [?TO_HTML(A#account.id), ?TO_HTML(" - "),
+                   ?TO_HTML(A#account.name), ?TO_HTML(" - "),
+                   ?TO_HTML(A#account.type)]}} || A <- B#book.accounts]}.
 
 </erl>
 

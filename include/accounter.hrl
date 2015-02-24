@@ -9,6 +9,8 @@
 -define(BINDING(Tag, List),
         accounter:lookup_binding(Tag, List, ?FILE, ?LINE)).
 
+-define(TO_HTML(IoList), accounter_html:to_html(IoList)).
+
 -record(book,
         {name,
          accounts,

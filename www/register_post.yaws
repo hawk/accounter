@@ -18,7 +18,7 @@ out(Args) ->
     Delim = ";",
     V = parse_voucher_post(Args, Delim),
     export_voucher(Dir, V, Delim),
-    NewVid = accounter:to_html(V#voucher.id),
+    NewVid = ?TO_HTML(V#voucher.id),
     {redirect_local, ["/reports.yaws", accounter:forward_query([], Args),
                       "#voucher_", NewVid]}.
 
@@ -32,7 +32,7 @@ parse_voucher_post(Args, Delim) when is_list(Delim) ->
         [#voucher{} = V] ->
             VoucherItems = parse_items(Items, Vid, Delim),
             {VoucherItems2, _Rem, _Errors} =
-                accounter_csv:adapt_items(VoucherItems, V#voucher.id, [], [], []),
+                accounter_check:adapt_items(VoucherItems, V#voucher.id, [], [], []),
             io:format("V: ~p\n", [VoucherItems2]),
             %% VoucherItems3 = [I || I <- VoucherItems2, I#item.amount =/= 0],
             V#voucher{items = VoucherItems2};

@@ -1,9 +1,45 @@
+management
+  create year
+    copy files
+    prune files
+    import result and balance
+  generate multi-year report
+    one row per account
+    one column per year
+  comparison report
+    result - budget
+    result - prev year
+  edit budget
+  edit accounts
+
+register
+  simplify input
+    date
+      default to last voucher
+      first jan for first voucher
+    account
+  edit last voucher
+  suppress errors within this voucher (persistent)
+  if errors then
+    display error messages
+  else
+    store
+  end
+
+storage
+  xml
+  csv
+    old
+    new
+  export
+    excel
+  import
+    visma
+
 currency
   kr/ore
 
-xml
-  csv
-
-http://tools.effso.se/terminologi/inkopslexikon/
-https://sv.wikipedia.org/wiki/Bokf%C3%B6ring
-https://en.wikipedia.org/wiki/Bookkeeping
+links
+  http://tools.effso.se/terminologi/inkopslexikon/
+  https://sv.wikipedia.org/wiki/Bokf%C3%B6ring
+  https://en.wikipedia.org/wiki/Bookkeeping

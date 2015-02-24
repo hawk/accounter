@@ -98,21 +98,21 @@ gen_index(Bindings) ->
      {ul, [],
       [
        {li,[], [{p,[], [{a, [{href, "#errors"}],
-                         {pre_html, accounter:to_html(ErrorMsgsL)}}]}]},
+                         {pre_html, ?TO_HTML(ErrorMsgsL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#balance"}],
-                         {pre_html, accounter:to_html(BalanceReportL)}}]}]},
+                         {pre_html, ?TO_HTML(BalanceReportL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#result"}],
-                         {pre_html, accounter:to_html(ResultReportL)}}]}]},
+                         {pre_html, ?TO_HTML(ResultReportL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#budget"}],
-                         {pre_html, accounter:to_html(BudgetL)}}]}]},
+                         {pre_html, ?TO_HTML(BudgetL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#comparison"}],
-                         {pre_html, accounter:to_html(ComparisonL)}}]}]},
+                         {pre_html, ?TO_HTML(ComparisonL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#journal"}],
-                         {pre_html, accounter:to_html(JournalL)}}]}]},
+                         {pre_html, ?TO_HTML(JournalL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#ledge"}],
-                         {pre_html, accounter:to_html(LedgerL)}}]}]},
+                         {pre_html, ?TO_HTML(LedgerL)}}]}]},
        {li,[], [{p,[], [{a, [{href, "#print"}],
-                         {pre_html, accounter:to_html(PrintoutL)}}]}]}
+                         {pre_html, ?TO_HTML(PrintoutL)}}]}]}
       ]}
     ].
 
@@ -132,13 +132,13 @@ gen_print(Args, Bindings, Book) ->
               {pre_html, [AssociationL, " ", Book#book.name, " - ", PrintoutL]}}},
      {ul, [],
       [
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "errors"}], Args)]}], {pre_html, accounter:to_html(ErrorMsgsL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "balance"}], Args)]}], {pre_html, accounter:to_html(BalanceReportL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "result"}], Args)]}], {pre_html, accounter:to_html(ResultReportL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "budget"}], Args)]}], {pre_html, accounter:to_html(BudgetL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "comparison"}], Args)]}], {pre_html, accounter:to_html(ComparisonL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "journal"}], Args)]}], {pre_html, accounter:to_html(JournalL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "ledge"}], Args)]}], {pre_html, accounter:to_html(LedgerL)}}]}]}
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "errors"}], Args)]}], {pre_html, ?TO_HTML(ErrorMsgsL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "balance"}], Args)]}], {pre_html, ?TO_HTML(BalanceReportL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "result"}], Args)]}], {pre_html, ?TO_HTML(ResultReportL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "budget"}], Args)]}], {pre_html, ?TO_HTML(BudgetL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "comparison"}], Args)]}], {pre_html, ?TO_HTML(ComparisonL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "journal"}], Args)]}], {pre_html, ?TO_HTML(JournalL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "ledge"}], Args)]}], {pre_html, ?TO_HTML(LedgerL)}}]}]}
       ]}
     ].
 
@@ -166,26 +166,26 @@ gen_errors(Bindings, B) when is_record(B, book) ->
      {table, [{border,2}, {cellspacing,1}, {cellpadding,1},{width,"100%"}],
        [
         {tr, [{border,2}],
-         [{th, [{align,left}], {pre_html, accounter:to_html(TypeL)}},
-          {th, [{align,left}], {pre_html, accounter:to_html(IdL)}},
-          {th, [{align,left}], {pre_html, accounter:to_html(ErrorsL)}},
-          {th, [{align,left}], {pre_html, accounter:to_html(DescriptionL)}}
+         [{th, [{align,left}], {pre_html, ?TO_HTML(TypeL)}},
+          {th, [{align,left}], {pre_html, ?TO_HTML(IdL)}},
+          {th, [{align,left}], {pre_html, ?TO_HTML(ErrorsL)}},
+          {th, [{align,left}], {pre_html, ?TO_HTML(DescriptionL)}}
          ]} |
         [
          {tr, [{border,1}],
           [
            {td, [], {pre_html, ?BINDING(string:to_upper(atom_to_list(Type)), Bindings)}},
            {td, [], {a, [{href, "#" ++ key_to_ref(Type, Id) }],
-                     {pre_html, accounter:to_html(Id)}}},
-           {td, [], {pre_html, accounter:to_html(Val)}},
-           {td, [], {pre_html, accounter:to_html(Reason)}}
+                     {pre_html, ?TO_HTML(Id)}}},
+           {td, [], {pre_html, ?TO_HTML(Val)}},
+           {td, [], {pre_html, ?TO_HTML(Reason)}}
           ]} || #error{type = Type, id = Id, value = Val, reason = Reason} <- B#book.errors]
         ]}].
 
 key_to_ref(item, Key) ->
     key_to_ref(voucher, Key);
 key_to_ref(Type, Key) ->
-    atom_to_list(Type) ++ "_" ++ accounter:to_html(Key).
+    atom_to_list(Type) ++ "_" ++ ?TO_HTML(Key).
 
 %%%-------------------------------------------------------------------
 %%% Journal
@@ -206,12 +206,12 @@ gen_journal(Args, Bindings, B) ->
      {table, [{border,2}, {cellspacing,1},{cellpadding,1},{width,"100%"}],
        [{tr, [{border,0}],
          [
-          {th, [{align,left}], {pre_html, accounter:to_html(VoucherL)}},
-          {th, [{align,left}], {pre_html, accounter:to_html(DateL)}},
-          {th, [{align,left}], {pre_html, accounter:to_html(SummaryL)}},
-          {th, [{align,left}], {pre_html, accounter:to_html(DebitL)}},
-          {th, [{align,left}], {pre_html, accounter:to_html(CreditL)}},
-          {th, [{align,left}], {pre_html, accounter:to_html(AccountL)}}
+          {th, [{align,left}], {pre_html, ?TO_HTML(VoucherL)}},
+          {th, [{align,left}], {pre_html, ?TO_HTML(DateL)}},
+          {th, [{align,left}], {pre_html, ?TO_HTML(SummaryL)}},
+          {th, [{align,left}], {pre_html, ?TO_HTML(DebitL)}},
+          {th, [{align,left}], {pre_html, ?TO_HTML(CreditL)}},
+          {th, [{align,left}], {pre_html, ?TO_HTML(AccountL)}}
          ]},
         [gen_journal_row(Args, B#book.accounts, V) || V <- B#book.vouchers]
        ]}].
@@ -226,18 +226,18 @@ gen_journal_row(Args, Accounts, #voucher{id = Vid, date = Date, text = Text, ite
                     end,
                 ItemRow =
                     {tr, [{border,0}],
-                     [{td, [{colspan,2}, {border,0}], {pre_html, accounter:to_html("")}},
-                      {td, [{border,1}], {pre_html, accounter:to_html(Remark)}},
+                     [{td, [{colspan,2}, {border,0}], {pre_html, ?TO_HTML("")}},
+                      {td, [{border,1}], {pre_html, ?TO_HTML(Remark)}},
                       to_debit_credit(Amount),
                       {td, [{border,1}],
                        {a, [{href, "#" ++ key_to_ref(account, Aid)}],
-                        {pre_html, [accounter:to_html(Aid),
-                                    accounter:to_html(" - "),
-                                    accounter:to_html(Name)]}}}]},
+                        {pre_html, [?TO_HTML(Aid),
+                                    ?TO_HTML(" - "),
+                                    ?TO_HTML(Name)]}}}]},
                 {ItemRow, N + 1}
         end,
     {Rows, _} = lists:mapfoldl(ItemFun, 1, Items),
-    Vid2 = accounter:to_html(Vid),
+    Vid2 = ?TO_HTML(Vid),
     [
      {tr, [],
       [
@@ -245,19 +245,19 @@ gen_journal_row(Args, Accounts, #voucher{id = Vid, date = Date, text = Text, ite
         {a, [{name, key_to_ref(voucher, Vid)},
              {href, ["register.yaws", accounter:forward_query([{id, Vid2}], Args)]} %% OPT
             ], Vid2}},
-       {th, [{align,left}], {pre_html,accounter:to_html(Date)}},
-       {th, [{align,left},{colspan,5}], {pre_html,accounter:to_html(Text)}}]},
+       {th, [{align,left}], {pre_html,?TO_HTML(Date)}},
+       {th, [{align,left},{colspan,5}], {pre_html,?TO_HTML(Text)}}]},
      Rows
     ].
 
  to_debit_credit(Amount) ->
     case Amount > 0 of
         true ->
-            [{td, [{align,right}, {border,1}], {pre_html, accounter:to_html({kr, Amount})}},
-             {td, [{align,right}, {border,1}], {pre_html, accounter:to_html({kr, 0})}}];
+            [{td, [{align,right}, {border,1}], {pre_html, ?TO_HTML({kr, Amount})}},
+             {td, [{align,right}, {border,1}], {pre_html, ?TO_HTML({kr, 0})}}];
         false ->
-            [{td, [{align,right}, {border,1}], {pre_html, accounter:to_html({kr, 0})}},
-             {td, [{align,right}, {border,1}], {pre_html, accounter:to_html({kr, abs(Amount)})}}]
+            [{td, [{align,right}, {border,1}], {pre_html, ?TO_HTML({kr, 0})}},
+             {td, [{align,right}, {border,1}], {pre_html, ?TO_HTML({kr, abs(Amount)})}}]
     end.
 
 %%%-------------------------------------------------------------------
@@ -292,13 +292,13 @@ gen_ledge_rows(Bindings,
                             ItemCols =
                                 [
                                  {td, [{border,1},{align, right}],
-                                  {a, VoucherAttr, {pre_html, accounter:to_html(Vid)}}},
-                                 {td, [{border,1}], {pre_html, accounter:to_html(Date)}},
-                                 {td, [{border,1}], {pre_html, accounter:to_html(Text)}},
-                                 {td, [{border,1}], {pre_html, accounter:to_html(Remark)}},
+                                  {a, VoucherAttr, {pre_html, ?TO_HTML(Vid)}}},
+                                 {td, [{border,1}], {pre_html, ?TO_HTML(Date)}},
+                                 {td, [{border,1}], {pre_html, ?TO_HTML(Text)}},
+                                 {td, [{border,1}], {pre_html, ?TO_HTML(Remark)}},
                                  to_debit_credit(Amount),
                                  {td, [{border,1}, {align, right}],
-                                  {pre_html, accounter:to_html({kr, IB2})}}
+                                  {pre_html, ?TO_HTML({kr, IB2})}}
                                 ],
                             IR = [{tr, [{border,0}], ItemCols}],
                             {IR, {IN2, ID2, IC2, IB2}}
@@ -322,38 +322,38 @@ gen_ledge_rows(Bindings,
             [
              {h4, [],{a, [{name, key_to_ref(account, Aid)}, {href, "#" ++ key_to_ref(summary, Aid)}],
                       {pre_html,
-                       [accounter:to_html(Aid), " - ",
-                        accounter:to_html(Name),
+                       [?TO_HTML(Aid), " - ",
+                        ?TO_HTML(Name),
                         case Desc =:= [] of
                             true  -> [];
-                            false ->  ["&nbsp;(", accounter:to_html(Desc), ")"]
+                            false ->  ["&nbsp;(", ?TO_HTML(Desc), ")"]
                         end,
                         "&nbsp;-&nbsp;",
-                        accounter:to_html(Type)
+                        ?TO_HTML(Type)
                        ]}}},
              {table, [{border,2}, {cellspacing,1},{cellpadding,1},{width,"100%"}],
               [
                {tr, [{border,0}],
                 [
-                 {th, [{align,left}], {pre_html, accounter:to_html(VoucherL)}},
-                 {th, [{align,left}], {pre_html, accounter:to_html(DateL)}},
-                 {th, [{align,left}], {pre_html, accounter:to_html(SummaryL)}},
-                 {th, [{align,left}], {pre_html, accounter:to_html(NoteL)}},
-                 {th, [{align,left}], {pre_html, accounter:to_html(DebitL)}},
-                 {th, [{align,left}], {pre_html, accounter:to_html(CreditL)}},
-                 {th, [{align,left}], {pre_html, accounter:to_html(BalanceL)}}
+                 {th, [{align,left}], {pre_html, ?TO_HTML(VoucherL)}},
+                 {th, [{align,left}], {pre_html, ?TO_HTML(DateL)}},
+                 {th, [{align,left}], {pre_html, ?TO_HTML(SummaryL)}},
+                 {th, [{align,left}], {pre_html, ?TO_HTML(NoteL)}},
+                 {th, [{align,left}], {pre_html, ?TO_HTML(DebitL)}},
+                 {th, [{align,left}], {pre_html, ?TO_HTML(CreditL)}},
+                 {th, [{align,left}], {pre_html, ?TO_HTML(BalanceL)}}
                 ]},
                Rows2,
                {tr, [{border,2}],
                 [
-                 {th, [{align,left}], {pre_html, accounter:to_html("")}},
-                 {th, [{align,left}], {pre_html, accounter:to_html("")}},
-                 {th, [{align,left}], {pre_html, [accounter:to_html(NumberOfL ++ ": "),
-                                                  accounter:to_html(VN)]}},
-                 {th, [{align,left}], {pre_html, accounter:to_html(SumL)}},
-                 {th, [{align,right}], {pre_html, accounter:to_html({kr, VD})}},
-                 {th, [{align,right}], {pre_html, accounter:to_html({kr, VC})}},
-                 {th, [{align,right}], {pre_html, accounter:to_html({kr, VB})}}
+                 {th, [{align,left}], {pre_html, ?TO_HTML("")}},
+                 {th, [{align,left}], {pre_html, ?TO_HTML("")}},
+                 {th, [{align,left}], {pre_html, [?TO_HTML(NumberOfL ++ ": "),
+                                                  ?TO_HTML(VN)]}},
+                 {th, [{align,left}], {pre_html, ?TO_HTML(SumL)}},
+                 {th, [{align,right}], {pre_html, ?TO_HTML({kr, VD})}},
+                 {th, [{align,right}], {pre_html, ?TO_HTML({kr, VC})}},
+                 {th, [{align,right}], {pre_html, ?TO_HTML({kr, VB})}}
                 ]}
               ]
              }
@@ -379,7 +379,7 @@ gen_summary(Bindings, B, SummaryType, SummaryPos, ReportNameL) when is_atom(Summ
     [{h3,[], {a, [{name, atom_to_list(SummaryType)}],
               {pre_html, [AssociationL, " ", B#book.name, "- ", ReportNameL]}}},
      Rows,
-     {h3, [], {pre_html, [accounter:to_html(TotalL ++ ": "), accounter:to_html({kr, Total})]}}
+     {h3, [], {pre_html, [?TO_HTML(TotalL ++ ": "), ?TO_HTML({kr, Total})]}}
     ].
 
 gen_summary_type(Bindings, B, SummaryType, T, Accounts) ->
@@ -402,24 +402,24 @@ gen_summary_table(Bindings, B, comparison, T, Rows, Result, Budget, Comparison) 
     DifferenceL = ?BINDING("DIFFERENCE", Bindings),
     SumL = ?BINDING("SUM", Bindings),
     [
-     {h4, [], {pre_html, accounter:to_html(T)}},
+     {h4, [], {pre_html, ?TO_HTML(T)}},
      {table, [{border,2}, {cellspacing,1},{cellpadding,1},{width,"100%"}],
       [
        {tr, [{border,0}],
         [
-         {th, [{width, "55%"},{align,left}], {pre_html, accounter:to_html(AccountL)}},
-         {th, [{width, "15%"},{align,left}], {pre_html, accounter:to_html(ResultL)}},
-         {th, [{width, "15%"},{align,left}], {pre_html, accounter:to_html(BudgetL)}},
-         {th, [{width, "15%"},{align,left}], {pre_html, accounter:to_html(DifferenceL)}}
+         {th, [{width, "55%"},{align,left}], {pre_html, ?TO_HTML(AccountL)}},
+         {th, [{width, "15%"},{align,left}], {pre_html, ?TO_HTML(ResultL)}},
+         {th, [{width, "15%"},{align,left}], {pre_html, ?TO_HTML(BudgetL)}},
+         {th, [{width, "15%"},{align,left}], {pre_html, ?TO_HTML(DifferenceL)}}
         ]
        },
        Rows,
        {tr, [{border,0}],
         [
-         {th, [{align,left}], {pre_html, accounter:to_html(SumL)}},
-         {th, [{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Result)})}},
-         {th, [{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Budget)})}},
-         {th, [{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Comparison)})}}
+         {th, [{align,left}], {pre_html, ?TO_HTML(SumL)}},
+         {th, [{align,right}], {pre_html, ?TO_HTML({kr, negate(B, T, Result)})}},
+         {th, [{align,right}], {pre_html, ?TO_HTML({kr, negate(B, T, Budget)})}},
+         {th, [{align,right}], {pre_html, ?TO_HTML({kr, negate(B, T, Comparison)})}}
         ]
        }
       ]
@@ -430,20 +430,20 @@ gen_summary_table(Bindings, B, SummaryType, T, Rows, Summary, _Budget, _Comparis
     BalanceL = ?BINDING("BALANCE", Bindings),
     SumL = ?BINDING("SUM", Bindings),
     [
-     {h4, [], {pre_html, accounter:to_html(T)}},
+     {h4, [], {pre_html, ?TO_HTML(T)}},
      {table, [{border,2}, {cellspacing,1},{cellpadding,1},{width,"70%"}],
       [
        {tr, [{border,0}],
         [
-         {th, [{width, "75%"},{align,left}], {pre_html, accounter:to_html(AccountL)}},
-         {th, [{width, "25%"},{align,left}], {pre_html, accounter:to_html(BalanceL)}}
+         {th, [{width, "75%"},{align,left}], {pre_html, ?TO_HTML(AccountL)}},
+         {th, [{width, "25%"},{align,left}], {pre_html, ?TO_HTML(BalanceL)}}
         ]
        },
        Rows,
        {tr, [{border,0}],
         [
-         {th, [{align,left}], {pre_html, accounter:to_html(SumL)}},
-         {th, [{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Summary)})}}
+         {th, [{align,left}], {pre_html, ?TO_HTML(SumL)}},
+         {th, [{align,right}], {pre_html, ?TO_HTML({kr, negate(B, T, Summary)})}}
         ]
        }
       ]
@@ -467,9 +467,9 @@ gen_summary_account(B, SummaryType, #account{id = Aid, name = Name, type = T, bu
             Attrs = [{href, "#" ++ key_to_ref(account, Aid)}, {name, key_to_ref(summary, Aid)}],
             {Cols, BudSum, CompSum} = gen_comparison_cols(B, SummaryType, T, Summary, Budget),
             Row = {tr, [{border,0}],
-                   [{td, [{border,0}], {a, Attrs, {pre_html, accounter:to_html(Name)}}},
+                   [{td, [{border,0}], {a, Attrs, {pre_html, ?TO_HTML(Name)}}},
                     {td, [{border,0},{align,right}],
-                     {pre_html, accounter:to_html({kr, negate(B, T, Summary)})}},
+                     {pre_html, ?TO_HTML({kr, negate(B, T, Summary)})}},
                     Cols
                    ]},
             {Row, Summary, BudSum, CompSum}
@@ -480,9 +480,9 @@ gen_comparison_cols(B, comparison, T, Result, undefined) ->
 gen_comparison_cols(B, comparison, T, Result, Budget) ->
     Comparison = Result - Budget,
     Cols = [{td, [{border,0},{align,right}],
-             {pre_html, accounter:to_html({kr, negate(B, T, Budget)})}},
+             {pre_html, ?TO_HTML({kr, negate(B, T, Budget)})}},
             {td, [{border,0},{align,right}],
-             {pre_html, accounter:to_html({kr, negate(B, T, Comparison)})}}],
+             {pre_html, ?TO_HTML({kr, negate(B, T, Comparison)})}}],
     {Cols, Budget, Comparison};
 gen_comparison_cols(_, _, _, Result, _) ->
     {[], 0, 0}.
@@ -504,7 +504,7 @@ gen_budget(Bindings, B) ->
      {h3,[], {a, [{name, "budget"}],
               {pre_html, [AssociationL, " ", B#book.name, " - ", BudgetL]}}},
      Rows,
-     {h3, [], {pre_html, [accounter:to_html(TotalL ++ ": "), accounter:to_html({kr, -Total})]}}
+     {h3, [], {pre_html, [?TO_HTML(TotalL ++ ": "), ?TO_HTML({kr, -Total})]}}
     ].
 
 gen_budget_type(Bindings, B, T, Accounts) ->
@@ -519,20 +519,20 @@ gen_budget_type(Bindings, B, T, Accounts) ->
     Sum = lists:foldl(CalcSum, 0, Accounts),
     Rows =
         [
-         {h4, [], {pre_html, accounter:to_html(T)}},
+         {h4, [], {pre_html, ?TO_HTML(T)}},
          {table, [{border,2}, {cellspacing,1},{cellpadding,1},{width,"70%"}],
           [{tr, [{border,0}],
-            [{th, [{width, "75%"},{align,left}], {pre_html, accounter:to_html(AccountL)}},
-             {th, [{width, "25%"},{align,left}], {pre_html, accounter:to_html(BalanceL)}}]},
+            [{th, [{width, "75%"},{align,left}], {pre_html, ?TO_HTML(AccountL)}},
+             {th, [{width, "25%"},{align,left}], {pre_html, ?TO_HTML(BalanceL)}}]},
            [{tr, [{border,0}],
              [{td, [{align, left}], {a, [{href, "#" ++ key_to_ref(account, A#account.id)}],
-               {pre_html, accounter:to_html(A#account.name)}}}       ,
+               {pre_html, ?TO_HTML(A#account.name)}}}       ,
               {td, [{align, right}],
-               {pre_html, accounter:to_html({kr, negate(B, T, A#account.budget)})}}]
+               {pre_html, ?TO_HTML({kr, negate(B, T, A#account.budget)})}}]
             } || A <- lists:keysort(#account.name, [X || X <- Accounts, X#account.type =:= T])],
            {tr, [{border,2}],
-            [{th, [{align,left}], {pre_html, accounter:to_html(Sum)}},
-             {th, [{align,right}], {pre_html, accounter:to_html({kr, negate(B, T, Sum)})}}]
+            [{th, [{align,left}], {pre_html, ?TO_HTML(Sum)}},
+             {th, [{align,right}], {pre_html, ?TO_HTML({kr, negate(B, T, Sum)})}}]
            }
           ]}],
     {Rows, Sum}.
