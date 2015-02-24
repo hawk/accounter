@@ -15,16 +15,16 @@
 %% Adapt
 %%-------------------------------------------------------------------
 
-adapt_book(Name, Accounts, Vouchers, Items, Budgets, Types) ->
+adapt_book(Name, Types, Accounts, Budgets, Vouchers, Items) ->
     {Accounts2, Errors}  = adapt_accounts(Accounts, []),
     {Vouchers2, Errors2} = adapt_vouchers(Vouchers, Errors),
     {Accounts3, Vouchers3, Errors3} =
         adapt_items(Accounts2, Vouchers2, Items, Errors2),
     {Accounts4, Errors4} = adapt_budgets(Accounts3, Budgets, Errors3),
     #book{name     = Name,
+          types    = lists:keysort(#account_type.name, Types),
           accounts = lists:keysort(#account.id, Accounts4),
           vouchers = lists:keysort(#voucher.id, Vouchers3),
-          types    = lists:keysort(#account_type.name, Types),
           errors   = lists:sort(Errors4)}.
 
 adapt_accounts(Accounts, Errors) ->

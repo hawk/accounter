@@ -13,9 +13,9 @@
 
 -record(book,
         {name,
+         types,
          accounts,
          vouchers,
-         types,
          errors}).
 
 -record(account,

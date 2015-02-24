@@ -6,11 +6,12 @@
 -module(accounter_csv).
 -export([
          get_field_delim/1,
+         csv_style/1,
          import_book/2,
          to_tokens/2,
-         tokens_to_vouchers/2, tokens_to_items/2,
-         vouchers_to_chars/2, voucher_items_to_chars/2,
-         book_to_chars/3
+         tokens_to_vouchers/3, tokens_to_items/3,
+         book_to_chars/4,
+         export_voucher/3
         ]).
 
 -include("../include/accounter.hrl").
@@ -21,6 +22,33 @@ get_field_delim(Args) ->
             Delim;
         _ ->
             $;
+    end.
+
+csv_style(BooksDir) ->
+    File = filename:join([BooksDir, filename(new_style, account_type)]),
+    case filelib:is_regular(File) of
+        true  -> new_style;
+        false -> old_style
+    end.
+
+filetypes() ->
+    [account_type, account, budget, voucher, item].
+
+filename(new_style, FileType) ->
+    case FileType of
+        account_type -> "account_types.csv";
+        account      -> "accounts.csv";
+        budget       -> "budget.csv";
+        voucher      -> "vouchers.csv";
+        item         -> "items.csv"
+    end;
+filename(old_style, FileType) ->
+    case FileType of
+        account_type -> "Kontotyper.txt";
+        account      -> "Kontotabell.txt";
+        budget       -> "Budget.txt";
+        voucher      -> "Verifikationer.txt";
+        item         -> "Kontering.txt"
     end.
 
 %%-------------------------------------------------------------------
@@ -48,15 +76,12 @@ import_book(BooksDir, Name, Delim) ->
                                      line   = ?LINE}]}
                 end
         end,
-    Files = ["Kontotabell.txt",
-             "Verifikationer.txt",
-             "Kontering.txt",
-             "Budget.txt",
-             "Kontotyper.txt"],
+    CsvStyle = csv_style(BooksDir),
+    Files = [filename(CsvStyle, FileType) || FileType <- filetypes()],
     AllChars = lists:map(Fun, Files),
     _Errors =  [E || {_C, E} <- AllChars],
-    [AChars, VChars, IChars, BChars, TChars] =  [C || {C, _E} <- AllChars],
-    chars_to_book(Name, AChars, VChars, IChars, BChars, TChars, Delim).
+    [TChars, AChars, BChars, VChars, IChars] =  [C || {C, _E} <- AllChars],
+    chars_to_book(CsvStyle, Name, TChars, AChars, BChars, VChars, IChars, Delim).
 
 file_to_chars(FileName) ->
     case file:read_file(FileName) of
@@ -66,14 +91,15 @@ file_to_chars(FileName) ->
             {error,  file:format_error(Reason)}
     end.
 
-chars_to_book(Name, AccountChars, VoucherChars, ItemChars,
-              BudgetChars, TypeChars, Delim) ->
-    Accounts = tokens_to_accounts(to_tokens(AccountChars, Delim), []),
-    Vouchers = tokens_to_vouchers(to_tokens(VoucherChars, Delim), []),
-    Items    = tokens_to_items(to_tokens(ItemChars, Delim), []),
-    Budgets  = tokens_to_budgets(to_tokens(BudgetChars, Delim), []),
-    Types    = tokens_to_types(to_tokens(TypeChars, Delim), []),
-    accounter_check:adapt_book(Name, Accounts, Vouchers, Items, Budgets, Types).
+chars_to_book(CsvStyle, Name,
+              TypeChars, AccountChars, BudgetChars, VoucherChars, ItemChars,
+              Delim) ->
+    Types    = tokens_to_types(CsvStyle, to_tokens(TypeChars, Delim), []),
+    Accounts = tokens_to_accounts(CsvStyle, to_tokens(AccountChars, Delim), []),
+    Budgets  = tokens_to_budgets(CsvStyle, to_tokens(BudgetChars, Delim), []),
+    Vouchers = tokens_to_vouchers(CsvStyle, to_tokens(VoucherChars, Delim), []),
+    Items    = tokens_to_items(CsvStyle, to_tokens(ItemChars, Delim), []),
+    accounter_check:adapt_book(Name, Types, Accounts, Budgets, Vouchers, Items).
 
 %%-------------------------------------------------------------------
 
@@ -116,11 +142,13 @@ trim_tokens(Tail, Delim, Tokens) ->
 skip_spaces(Chars) ->
     string:strip(Chars, left, $ ).
 
-tokens_to_accounts([["Konto_Nr", "Konto_namn", "Konto_Typ", "K_beskrivning",
+tokens_to_accounts(CsvStyle,
+                   [["Konto_Nr", "Konto_namn", "Konto_Typ", "K_beskrivning",
                      "Gamla konto_Nr", "resultat", "balans"] | Tail],
                    Accounts) ->
-    tokens_to_accounts(Tail, Accounts);
-tokens_to_accounts([[Id, Name, Type, Desc, OldId, Result, Balance] | Tail],
+    tokens_to_accounts(CsvStyle, Tail, Accounts);
+tokens_to_accounts(CsvStyle,
+                   [[Id, Name, Type, Desc, OldId, Result, Balance] | Tail],
                    Accounts) ->
     A = (catch #account{id      = to_int(account, Id, Id),
                         name    = to_string(account, Id, Name),
@@ -129,65 +157,69 @@ tokens_to_accounts([[Id, Name, Type, Desc, OldId, Result, Balance] | Tail],
                         old_id  = to_int(account, Id, OldId),
                         result  = to_bool(account, Id, Result),
                         balance = to_bool(account, Id, Balance)}),
-    tokens_to_accounts(Tail, [A | Accounts]);
-tokens_to_accounts([H = [Id | _] | _Tail], _) ->
+    tokens_to_accounts(CsvStyle, Tail, [A | Accounts]);
+tokens_to_accounts(_CsvStyle, [H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
     bail_out(account, Id, Arity, "bad arity, 7 expected", ?FILE, ?LINE);
-tokens_to_accounts([], Accounts) ->
+tokens_to_accounts(_CsvStyle, [], Accounts) ->
     lists:reverse(Accounts).
 
-tokens_to_items([["Verifikations_ID", "Konto_Nr", "Debet", "Kredit",
+tokens_to_items(CsvStyle,
+                [["Verifikations_ID", "Konto_Nr", "Debet", "Kredit",
                   "Kommentar"] | Tail], Items) ->
-    tokens_to_items(Tail, Items);
-tokens_to_items([[Vid, Aid, Debit, Credit, Remark] | Tail], Items) ->
+    tokens_to_items(CsvStyle, Tail, Items);
+tokens_to_items(CsvStyle, [[Vid, Aid, Debit, Credit, Remark] | Tail], Items) ->
     I = #item{voucher_id = to_int(item, Vid, Vid),
               account_id = to_int(item, Vid, Aid),
               amount     = {to_ore(item, Vid, Debit),
                             to_ore(item, Vid, Credit)},
               remark     = to_string(item, Vid, Remark)},
-    tokens_to_items(Tail, [I | Items]);
-tokens_to_items([H = [Id | _] | _Tail], _) ->
+    tokens_to_items(CsvStyle, Tail, [I | Items]);
+tokens_to_items(_CsvStyle, [H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
     bail_out(item, Id, Arity, "bad arity, 5 expected", ?FILE, ?LINE);
-tokens_to_items([], Items) ->
+tokens_to_items(_CsvStyle, [], Items) ->
     lists:reverse(Items).
 
-tokens_to_vouchers([["Verifikations_ID", "V_Datum", "V_Text"] | Tail],
+tokens_to_vouchers(CsvStyle,
+                   [["Verifikations_ID", "V_Datum", "V_Text"] | Tail],
                    Vouchers) ->
-    tokens_to_vouchers(Tail, Vouchers);
-tokens_to_vouchers([[Id, Date, Text] | Tail], Vouchers) ->
+    tokens_to_vouchers(CsvStyle, Tail, Vouchers);
+tokens_to_vouchers(CsvStyle, [[Id, Date, Text] | Tail], Vouchers) ->
     V = (catch #voucher{id   = to_int(voucher, Id, Id),
                         date = to_date(voucher, Id, Date),
                         text = to_string(voucher, Id, Text)}),
-    tokens_to_vouchers(Tail, [V | Vouchers]);
-tokens_to_vouchers([H = [Id | _] | _Tail], _) ->
+    tokens_to_vouchers(CsvStyle, Tail, [V | Vouchers]);
+tokens_to_vouchers(_CsvStyle, [H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
     bail_out(voucher, Id, Arity, "bad arity, 3 expected", ?FILE, ?LINE);
-tokens_to_vouchers([], Vouchers) ->
+tokens_to_vouchers(_CsvStyle, [], Vouchers) ->
     lists:reverse(Vouchers).
 
-tokens_to_budgets([["Konto_Nr", "Konto_saldo"] | Tail],  Budgets) ->
-    tokens_to_budgets(Tail, Budgets);
-tokens_to_budgets([[Id, Balance] | Tail],  Budgets) ->
+tokens_to_budgets(CsvStyle,
+                  [["Konto_Nr", "Konto_saldo"] | Tail],  Budgets) ->
+    tokens_to_budgets(CsvStyle, Tail, Budgets);
+tokens_to_budgets(CsvStyle, [[Id, Balance] | Tail],  Budgets) ->
     X = (catch #budget{account_id      = to_int(budget, Id, Id),
                        account_balance = to_ore(budget, Id, Balance)}),
-    tokens_to_budgets(Tail, [X | Budgets]);
-tokens_to_budgets([H = [Id | _] | _Tail], _) ->
+    tokens_to_budgets(CsvStyle, Tail, [X | Budgets]);
+tokens_to_budgets(_CsvStyle, [H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
     bail_out(budget, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
-tokens_to_budgets([], Budgets) ->
+tokens_to_budgets(_CsvStyle, [], Budgets) ->
     lists:reverse(Budgets).
 
-tokens_to_types([["Konto_typ", "Konto_negativ"] | Tail],  Types) ->
-    tokens_to_types(Tail, Types);
-tokens_to_types([[Id, Balance] | Tail],  Types) ->
+tokens_to_types(CsvStyle,
+                [["Konto_typ", "Konto_negativ"] | Tail],  Types) ->
+    tokens_to_types(CsvStyle, Tail, Types);
+tokens_to_types(CsvStyle, [[Id, Balance] | Tail],  Types) ->
     X = (catch #account_type{name   = to_string(type, Id, Id),
                              negate = to_bool(type, Id, Balance)}),
-    tokens_to_types(Tail, [X | Types]);
-tokens_to_types([H = [Id | _] | _Tail], _) ->
+    tokens_to_types(CsvStyle, Tail, [X | Types]);
+tokens_to_types(_CsvStyle, [H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
     bail_out(type, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
-tokens_to_types([], Types) ->
+tokens_to_types(_CsvStyle, [], Types) ->
     lists:reverse(Types).
 
 to_int(Type, Id, Chars) ->
@@ -248,10 +280,22 @@ bail_out(Type, Id, Chars, Reason, File, Line) ->
 %% Export
 %%-------------------------------------------------------------------
 
+export_voucher(BooksDir, V, Delim) when is_record(V, voucher), is_list(Delim) ->
+    CsvStyle = csv_style(BooksDir),
+    VoucherChars = vouchers_to_chars(CsvStyle, [V], hd(Delim)),
+    ItemChars =  voucher_items_to_chars(CsvStyle, [V], hd(Delim)),
+    CsvCtyle = csv_style(BooksDir),
+    VoucherFile = filename:join([BooksDir, filename(CsvCtyle, voucher)]),
+    ok = file:write_file(VoucherFile, list_to_binary(VoucherChars), [append]),
+    ItemFile = filename:join([BooksDir, filename(CsvCtyle, item)]),
+    ok = file:write_file(ItemFile, list_to_binary(ItemChars), [append]),
+    ok,
+    ItemChars.
+
 %% export_book(BooksDir, Book, Delim) ->
 %%     {AccountChars, VoucherChars, ItemChars,
 %%      BudgetChars, TypeChars, ErrorChars} =
-%%         book_to_chars(Book, Delim),
+%%         book_to_chars(CsvStyle, Book, Delim),
 %%     Dir = filename:join([BooksDir, Book#book.name]),
 %%     AccountFile = filename:join([Dir, "Kontotabell.txt"]),
 %%     ok = file:write_file(AccountFile, list_to_binary(AccountChars)),
@@ -267,16 +311,23 @@ bail_out(Type, Id, Chars, Reason, File, Line) ->
 %%     ok = file:write_file(ErrorFile, list_to_binary(ErrorChars)),
 %%     {ok, Dir}.
 
-book_to_chars(Bindings, B, Delim) ->
-    {[accounts_header(Delim), accounts_to_chars(B#book.accounts, Delim)],
-     [vouchers_header(Delim), vouchers_to_chars(B#book.vouchers, Delim)],
-     [items_header(Delim),    voucher_items_to_chars(B#book.vouchers, Delim)],
-     [budgets_header(Delim),  budgets_to_chars(B#book.accounts, Delim)],
-     [types_header(Delim),    types_to_chars(B#book.types, Delim)],
-     [errors_header(Delim),   errors_to_chars(Bindings, B#book.errors, Delim)]
+book_to_chars(CsvStyle, Bindings, B, Delim) ->
+    {
+      [accounts_header(CsvStyle, Delim),
+       accounts_to_chars(CsvStyle, B#book.accounts, Delim)],
+      [vouchers_header(CsvStyle, Delim),
+       vouchers_to_chars(CsvStyle, B#book.vouchers, Delim)],
+      [items_header(CsvStyle, Delim),
+       voucher_items_to_chars(CsvStyle, B#book.vouchers, Delim)],
+      [budgets_header(CsvStyle, Delim),
+       budgets_to_chars(CsvStyle, B#book.accounts, Delim)],
+      [types_header(CsvStyle, Delim),
+       types_to_chars(CsvStyle, B#book.types, Delim)],
+      [errors_header(CsvStyle, Delim),
+       errors_to_chars(CsvStyle, Bindings, B#book.errors, Delim)]
     }.
 
-accounts_to_chars(Accounts, Delim) ->
+accounts_to_chars(old_style, Accounts, Delim) ->
     [
      [
       from_int(Id), Delim,
@@ -285,7 +336,7 @@ accounts_to_chars(Accounts, Delim) ->
       from_string(Desc), Delim,
       from_int(OldId), Delim,
       from_bool(Result), Delim,
-      from_bool(Balance), $\r, $\n
+      from_bool(Balance), $\n
      ] || #account{id = Id,
                    name = Name,
                    type = Type,
@@ -294,7 +345,7 @@ accounts_to_chars(Accounts, Delim) ->
                    result = Result,
                    balance = Balance} <- Accounts].
 
-accounts_header(Delim) ->
+accounts_header(old_style, Delim) ->
     [
      from_string("Konto_Nr"), Delim,
      from_string("Konto_namn"), Delim,
@@ -302,96 +353,96 @@ accounts_header(Delim) ->
      from_string("K_beskrivning"), Delim,
      from_string("Gamla konto_Nr"), Delim,
      from_string("resultat"), Delim,
-     from_string("balans"), $\r, $\n
+     from_string("balans"), $\n
     ].
 
-vouchers_to_chars(Vouchers, Delim) ->
+vouchers_to_chars(old_style, Vouchers, Delim) ->
     [
      [
       from_int(Id), Delim,
       from_date(Date), Delim,
-      from_string(Text), $\r, $\n
+      from_string(Text), $\n
      ] || #voucher{id   = Id,
                    date = Date,
                    text = Text} <- Vouchers].
 
-vouchers_header(Delim) ->
+vouchers_header(old_style, Delim) ->
     [
      from_string("Verifikations_ID"), Delim,
      from_string("V_Datum"), Delim,
-     from_string("V_Text"), $\r, $\n
+     from_string("V_Text"), $\n
     ].
 
-voucher_items_to_chars(Vouchers, Delim) ->
-    [items_to_chars(V#voucher.items, Delim) || V <- Vouchers].
+voucher_items_to_chars(CsvStyle, Vouchers, Delim) ->
+    [items_to_chars(CsvStyle, V#voucher.items, Delim) || V <- Vouchers].
 
-items_to_chars(Items, Delim) ->
+items_to_chars(old_style, Items, Delim) ->
     [
      [
       from_int(Vid), Delim,
       from_int(Aid), Delim,
       accounter:from_ore(Ore, Delim), Delim,
-      from_string(Remark), $\r, $\n
+      from_string(Remark), $\n
      ] || #item{voucher_id = Vid,
                 account_id = Aid,
                 amount     = Ore,
                 remark     = Remark} <- Items].
 
-items_header(Delim) ->
+items_header(old_style, Delim) ->
     [
      from_string("Verifikations_ID"), Delim,
      from_string("Konto_Nr"), Delim,
      from_string("Debet"), Delim,
      from_string("Kredit"), Delim,
-     from_string("Kommentar"), $\r, $\n
+     from_string("Kommentar"), $\n
     ].
 
-budgets_to_chars(Accounts, Delim) ->
+budgets_to_chars(old_style, Accounts, Delim) ->
     [
      [from_int(Id), Delim,
-      from_int(Bal), $\r, $\n
+      from_int(Bal), $\n
      ] || #account{id     = Id,
                    budget = Bal} <- Accounts, Bal =/= undefined
     ].
 
-budgets_header(Delim) ->
+budgets_header(old_style, Delim) ->
     [
      from_string("Konto_Nr"), Delim,
-     from_string("Konto_saldo"), $\r, $\n
+     from_string("Konto_saldo"), $\n
     ].
 
-types_to_chars(Types, Delim) ->
+types_to_chars(old_style, Types, Delim) ->
     [
      [from_string(Name), Delim,
-      from_bool(Neg), $\r, $\n
+      from_bool(Neg), $\n
      ] || #account_type{name    = Name,
                         negate  = Neg} <- Types
     ].
 
-types_header(Delim) ->
+types_header(old_style, Delim) ->
     [
      from_string("Konto_typ"), Delim,
-     from_string("Konto_negativ"), $\r, $\n
+     from_string("Konto_negativ"), $\n
     ].
 
-errors_to_chars(Bindings, Errors, Delim) ->
+errors_to_chars(old_style, Bindings, Errors, Delim) ->
     [
      [
       ?BINDING(string:to_upper(atom_to_list(Type)), Bindings), Delim,
       from_any(Id), Delim,
       from_any(Val), Delim,
-      from_string(Reason), $\r, $\n
+      from_string(Reason), $\n
      ] || #error{type   = Type,
                  id     = Id,
                  value  = Val,
                  reason = Reason} <- Errors].
 
-errors_header(Delim) ->
+errors_header(old_style, Delim) ->
     [
      from_string("Typ"), Delim,
      from_string("Id"), Delim,
      from_string("Ajabaja"), Delim,
-     from_string("Beskrivning"), $\r, $\n
+     from_string("Beskrivning"), $\n
     ].
 
 from_any(Int) when is_integer(Int) ->

@@ -17,7 +17,7 @@ out(Args) ->
     Dir = filename:join([BooksDir, Name]),
     Delim = ";",
     V = parse_voucher_post(Args, Delim),
-    export_voucher(Dir, V, Delim),
+    accounter_csv:export_voucher(Dir, V, Delim),
     NewVid = ?TO_HTML(V#voucher.id),
     {redirect_local, ["/reports.yaws", accounter:forward_query([], Args),
                       "#voucher_", NewVid]}.
@@ -26,11 +26,13 @@ parse_voucher_post(Args, Delim) when is_list(Delim) ->
     [{"voucher",Vid},
      {"date",Date},
      {"text",Text} | Items] = yaws_api:parse_post(Args),
+    BooksDir = accounter:get_books_dir(Args),
+    CsvStyle = accounter_csv:csv_style(BooksDir),
     VoucherTokens = lists:concat([Vid, Delim, Date, Delim, Text]),
     Tokens = accounter_csv:to_tokens(VoucherTokens, hd(Delim)),
-    case catch accounter_csv:tokens_to_vouchers(Tokens, []) of
+    case catch accounter_csv:tokens_to_vouchers(CsvStyle, Tokens, []) of
         [#voucher{} = V] ->
-            VoucherItems = parse_items(Items, Vid, Delim),
+            VoucherItems = parse_items(CsvStyle, Items, Vid, Delim),
             {VoucherItems2, _Rem, _Errors} =
                 accounter_check:adapt_items(VoucherItems, V#voucher.id, [], [], []),
             io:format("V: ~p\n", [VoucherItems2]),
@@ -45,20 +47,23 @@ parse_voucher_post(Args, Delim) when is_list(Delim) ->
             exit({error, [Type, Id, Val, Reason, File, Line]})
     end.
 
-parse_items([{"remark", ""}, {"debit", _}, {"credit", _},
+parse_items(CsvStyle,
+            [{"remark", ""}, {"debit", _}, {"credit", _},
              {"account", _} | Items], Vid, Delim) ->
-    parse_items(Items, Vid, Delim);
-parse_items([{"remark", undefined}, {"debit", _}, {"credit", _},
+    parse_items(CsvStyle, Items, Vid, Delim);
+parse_items(CsvStyle, 
+            [{"remark", undefined}, {"debit", _}, {"credit", _},
              {"account", _} | Items], Vid, Delim) ->
-    parse_items(Items, Vid, Delim);
-parse_items([{"remark", Remark}, {"debit", Debit}, {"credit", Credit},
+    parse_items(CsvStyle, Items, Vid, Delim);
+parse_items(CsvStyle, 
+            [{"remark", Remark}, {"debit", Debit}, {"credit", Credit},
              {"account", Account} | Items], Vid, Delim) ->
     ItemTokens = lists:concat([Vid, Delim, Account, Delim, Debit,
                                Delim, Credit, Delim, Remark]),
     Tokens = accounter_csv:to_tokens(ItemTokens, hd(Delim)),
-    case accounter_csv:tokens_to_items(Tokens, []) of
+    case accounter_csv:tokens_to_items(CsvStyle, Tokens, []) of
         [#item{} = I] ->
-            [I | parse_items(Items, Vid, Delim)];
+            [I | parse_items(CsvStyle, Items, Vid, Delim)];
         [#error{type   = Type,
                 id     = Id,
                 value  = Val,
@@ -67,18 +72,8 @@ parse_items([{"remark", Remark}, {"debit", Debit}, {"credit", Credit},
                 line   = Line}] ->
             exit({error, [Type, Id, Val, Reason, File, Line]})
     end;
-parse_items([], _Vid, _Delim) ->
+parse_items(_CsvStyle, [], _Vid, _Delim) ->
     [].
-
-export_voucher(Dir, V, Delim) when is_record(V, voucher), is_list(Delim) ->
-    VoucherChars = accounter_csv:vouchers_to_chars([V], hd(Delim)),
-    ItemChars =  accounter_csv:voucher_items_to_chars([V], hd(Delim)),
-    VoucherFile = filename:join([Dir, "Verifikationer.txt"]),
-    ok = file:write_file(VoucherFile, list_to_binary(VoucherChars), [append]),
-    ItemFile = filename:join([Dir, "Kontering.txt"]),
-    ok = file:write_file(ItemFile, list_to_binary(ItemChars), [append]),
-    ok,
-    ItemChars.
 
 </erl>
 

@@ -18,7 +18,7 @@ out(Args) ->
     TablesL = ?BINDING("TABLES", Bindings),
     Delim = accounter_csv:get_field_delim(Args),
     {AccountChars, VoucherChars, ItemChars, BudgetChars, TypeChars, ErrorChars} =
-        accounter_csv:book_to_chars(Bindings, Book, Delim),
+        accounter_csv:book_to_chars(old_style, Bindings, Book, Delim),
     [
      {ssi, "header.ssi", "%%", Bindings},
      {ssi, "buttons.ssi", "%%", Bindings},
