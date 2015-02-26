@@ -152,7 +152,7 @@ tokens_to_accounts(old_style = CsvStyle,
     tokens_to_accounts(CsvStyle, Tail, Accounts);
 tokens_to_accounts(new_style = CsvStyle,
                    [["Id", "Name", "Type", "Description",
-                     "Result", "Balance"] | Tail],
+                     "IncludeInResult", "IncludeInBalance"] | Tail],
                    Accounts) ->
     tokens_to_accounts(CsvStyle, Tail, Accounts);
 tokens_to_accounts(old_style = CsvStyle,
@@ -381,6 +381,21 @@ accounts_to_chars(old_style, Accounts, Delim) ->
                    desc = Desc,
                    old_id = OldId,
                    result = Result,
+                   balance = Balance} <- Accounts];
+accounts_to_chars(new_style, Accounts, Delim) ->
+    [
+     [
+      from_int(Id), Delim,
+      from_string(Name), Delim,
+      from_string(Type), Delim,
+      from_string(Desc), Delim,
+      from_bool(Result), Delim,
+      from_bool(Balance), $\n
+     ] || #account{id = Id,
+                   name = Name,
+                   type = Type,
+                   desc = Desc,
+                   result = Result,
                    balance = Balance} <- Accounts].
 
 accounts_header(old_style, Delim) ->
@@ -392,9 +407,18 @@ accounts_header(old_style, Delim) ->
      from_string("Gamla konto_Nr"), Delim,
      from_string("resultat"), Delim,
      from_string("balans"), $\n
+    ];
+accounts_header(new_style, Delim) ->
+    [
+     from_string("Id"), Delim,
+     from_string("Name"), Delim,
+     from_string("Type"), Delim,
+     from_string("Description"), Delim,
+     from_string("IncludeInResult"), Delim,
+     from_string("IncludeInBalance"), $\n
     ].
 
-vouchers_to_chars(old_style, Vouchers, Delim) ->
+vouchers_to_chars(_CsvStyle_style, Vouchers, Delim) ->
     [
      [
       from_int(Id), Delim,
@@ -404,17 +428,17 @@ vouchers_to_chars(old_style, Vouchers, Delim) ->
                    date = Date,
                    text = Text} <- Vouchers].
 
-vouchers_header(old_style, Delim) ->
+vouchers_header(_CsvStyle, Delim) ->
     [
-     from_string("Verifikations_ID"), Delim,
-     from_string("V_Datum"), Delim,
-     from_string("V_Text"), $\n
+     from_string("Id"), Delim,
+     from_string("Date"), Delim,
+     from_string("Text"), $\n
     ].
 
 voucher_items_to_chars(CsvStyle, Vouchers, Delim) ->
     [items_to_chars(CsvStyle, V#voucher.items, Delim) || V <- Vouchers].
 
-items_to_chars(old_style, Items, Delim) ->
+items_to_chars(_CsvStyle, Items, Delim) ->
     [
      [
       from_int(Vid), Delim,
@@ -433,9 +457,17 @@ items_header(old_style, Delim) ->
      from_string("Debet"), Delim,
      from_string("Kredit"), Delim,
      from_string("Kommentar"), $\n
+    ];
+items_header(new_style, Delim) ->
+    [
+     from_string("VoucherId"), Delim,
+     from_string("AccountId"), Delim,
+     from_string("Debit"), Delim,
+     from_string("Credit"), Delim,
+     from_string("Remark"), $\n
     ].
 
-budgets_to_chars(old_style, Accounts, Delim) ->
+budgets_to_chars(_CsvStyle, Accounts, Delim) ->
     [
      [from_int(Id), Delim,
       from_int(Bal), $\n
@@ -447,23 +479,33 @@ budgets_header(old_style, Delim) ->
     [
      from_string("Konto_Nr"), Delim,
      from_string("Konto_saldo"), $\n
+    ];
+budgets_header(new_style, Delim) ->
+    [
+     from_string("AccountId"), Delim,
+     from_string("AccountBalance"), $\n
     ].
 
-types_to_chars(old_style, Types, Delim) ->
+types_to_chars(_CsvStyle, Types, Delim) ->
     [
      [from_string(Name), Delim,
       from_bool(Neg), $\n
-     ] || #account_type{name    = Name,
-                        negate  = Neg} <- Types
+     ] || #account_type{name   = Name,
+                        negate = Neg} <- Types
     ].
 
 types_header(old_style, Delim) ->
     [
      from_string("Konto_typ"), Delim,
      from_string("Konto_negativ"), $\n
+    ];
+types_header(new_style, Delim) ->
+    [
+     from_string("AccountType"), Delim,
+     from_string("Negate"), $\n
     ].
 
-errors_to_chars(old_style, Bindings, Errors, Delim) ->
+errors_to_chars(_CsvStyle, Bindings, Errors, Delim) ->
     [
      [
       ?BINDING(string:to_upper(atom_to_list(Type)), Bindings), Delim,
@@ -481,6 +523,13 @@ errors_header(old_style, Delim) ->
      from_string("Id"), Delim,
      from_string("Ajabaja"), Delim,
      from_string("Beskrivning"), $\n
+    ];
+errors_header(new_style, Delim) ->
+    [
+     from_string("Type"), Delim,
+     from_string("Id"), Delim,
+     from_string("BadValue"), Delim,
+     from_string("Reason"), $\n
     ].
 
 from_any(Int) when is_integer(Int) ->
