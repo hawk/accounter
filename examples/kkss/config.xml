@@ -19,7 +19,7 @@
     <binding><replace>DESCRIPTION</replace><with>Beskrivning</with></binding>
     <binding><replace>DIFFERENCE</replace><with>Diff</with></binding>
     <binding><replace>ERROR_MSGS</replace><with>Felmeddelanden</with></binding>
-    <binding><replace>ERRORS</replace><with>Ajabaja</with></binding>
+    <binding><replace>ERRORS</replace><with>Fel värde</with></binding>
     <binding><replace>FILE</replace><with>Fil</with></binding>
     <binding><replace>ID</replace><with>Id</with></binding>
     <binding><replace>ITEM</replace><with>Händelse</with></binding>

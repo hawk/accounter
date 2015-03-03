@@ -17,8 +17,11 @@ out(Args) ->
     AssociationL = ?BINDING("ASSOCIATION", Bindings),
     TablesL = ?BINDING("TABLES", Bindings),
     Delim = accounter_csv:get_field_delim(Args),
-    {AccountChars, VoucherChars, ItemChars, BudgetChars, TypeChars, ErrorChars} =
-        accounter_csv:book_to_chars(old_style, Bindings, Book, Delim),
+    CsvStyle = old_style,
+    {TypeChars, AccountChars, BudgetChars,
+     VoucherChars, ItemChars, ErrorChars} =
+        accounter_csv:book_to_chars(CsvStyle, Bindings, Book, Delim),
+    F = fun(FileType) -> accounter_csv:filename(CsvStyle, FileType) end,
     [
      {ssi, "header.ssi", "%%", Bindings},
      {ssi, "buttons.ssi", "%%", Bindings},
@@ -27,12 +30,12 @@ out(Args) ->
       [
        {h2,[], {pre_html, [AssociationL, " ", Book#book.name, " - ", TablesL]}},
        gen_index(Args, Bindings),
-       gen_table(Book, Bindings, "errors",   "Felmeddelanden.txt", ErrorChars),
-       gen_table(Book, Bindings, "budget",   "Budget.txt", BudgetChars),
-       gen_table(Book, Bindings, "vouchers", "Verifikationer.txt", VoucherChars),
-       gen_table(Book, Bindings, "items",    "Kontering.txt", ItemChars),
-       gen_table(Book, Bindings, "accounts", "Kontotabell.txt", AccountChars),
-       gen_table(Book, Bindings, "types",    "Kontotyper.txt", TypeChars)
+       gen_table(Book, Bindings, "errors",   F(error),   ErrorChars),
+       gen_table(Book, Bindings, "budget",   F(budget),  BudgetChars),
+       gen_table(Book, Bindings, "vouchers", F(voucher), VoucherChars),
+       gen_table(Book, Bindings, "items",    F(item),    ItemChars),
+       gen_table(Book, Bindings, "accounts", F(account), AccountChars),
+       gen_table(Book, Bindings, "types",    F(type),    TypeChars)
       ]},
      {ssi, "footer.ssi","%%", Bindings}
     ].
@@ -61,14 +64,16 @@ gen_index(Args, Bindings) ->
       ]}
     ].
 
-gen_table(Book, Bindings, Type, FileName, Chars) ->
+gen_table(#book{Name = Name}, Bindings, Type, FileName, Chars) ->
     AssociationL = ?BINDING("ASSOCIATION", Bindings),
     [
      {br},
      {hr},
-     {h2,[], {a, [{name, Type}],
-              {pre_html, [AssociationL, " ", Book#book.name, " - ", FileName]}}},
-     {'div', [{class, box}, {bgcolor,"#B6b6a5"}],
+     {h2,[], {a,
+              [{name, Type}],
+              {pre_html, [AssociationL, " ", Name, " - ", FileName]}}},
+     {'div', [{class, box},
+              {bgcolor, "#B6b6a5"}],
       {pre, [], {pre_html, ?TO_HTML(Chars)}}}
     ].
 

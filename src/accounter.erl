@@ -6,13 +6,12 @@
 -module(accounter).
 -export([
          get_work_dir/1,
-         get_books_dir/1,get_book_name/1,
+         get_books_dir/1,get_book_name/1, list_books/1,
          get_bindings/1, lookup_binding/4,
          get_var/3, forward_query/2,
          pad_right/2, from_ore/1, from_ore/2
         ]).
 
--include_lib("kernel/include/file.hrl").
 -include("../lib/yaws/include/yaws.hrl").
 -include("../lib/yaws/include/yaws_api.hrl").
 -include("../include/accounter.hrl").
@@ -112,7 +111,7 @@ get_book_name(Args) ->
                   BooksDir = get_books_dir(Args),
                   case list_books(BooksDir) of
                       {ok , [Name | _]} ->
-                    Name;
+                          Name;
                       {error, _Reason} ->
                           integer_to_list(element(1, erlang:date()))
                   end
@@ -121,6 +120,8 @@ get_book_name(Args) ->
 
 list_books(BooksDir) ->
     case file:list_dir(BooksDir) of
+        {ok, []} ->
+            {error, file:format_error(enoent)};
         {ok, Names} ->
             Rev = fun(X, Y) -> X > Y end,
             Names2 = [Name || Name <- lists:sort(Rev, Names),
@@ -132,12 +133,7 @@ list_books(BooksDir) ->
 
 is_dir(BooksDir, Name) ->
     DirName = filename:join([BooksDir, Name]),
-    case file:read_file_info(DirName) of
-        {ok, FI} when FI#file_info.type =:= directory ->
-            true;
-        _ ->
-            false
-    end.
+    filelib:is_dir(DirName).
 
 forward_query(NewQuery, Args) ->
     OldQuery = [{Key, Val} || {Key, Val} <- yaws_api:parse_query(Args),

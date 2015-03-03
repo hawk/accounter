@@ -7,6 +7,7 @@
 -export([
          get_field_delim/1,
          csv_style/1,
+         filename/2,
          import_book/2,
          to_tokens/2,
          tokens_to_vouchers/3, tokens_to_items/3,
@@ -102,7 +103,7 @@ chars_to_book(CsvStyle, Name,
     Budgets  = tokens_to_budgets(CsvStyle, to_tokens(BudgetChars, Delim), []),
     Vouchers = tokens_to_vouchers(CsvStyle, to_tokens(VoucherChars, Delim), []),
     Items    = tokens_to_items(CsvStyle, to_tokens(ItemChars, Delim), []),
-    accounter_check:adapt_book(Name, Types, Accounts, Budgets, Vouchers, Items).
+    accounter_check:amend_book(Name, Types, Accounts, Budgets, Vouchers, Items).
 
 %%-------------------------------------------------------------------
 

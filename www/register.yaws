@@ -23,11 +23,9 @@ out(Args) ->
     AccountL = ?BINDING("ACCOUNT", Bindings),
     SummaryL = ?BINDING("SUMMARY", Bindings),
     NoteL = ?BINDING("NOTE", Bindings),
-    NextFreeVid = get_latest_voucher_id(Args, Book) + 1,
     #voucher{id = Vid, date = Date, text = Text, items = Items} =
-        ensure_voucher(Args, Book, NextFreeVid),
+        ensure_voucher(Args, Book),
     HtmlVid = ?TO_HTML(Vid),
-    HtmlNextVid = ?TO_HTML(NextFreeVid),
     [
      {ssi, "header.ssi", "%%", Bindings},
      {ssi, "buttons.ssi", "%%", Bindings},
@@ -36,59 +34,95 @@ out(Args) ->
       [{h2,[],
         [{pre_html, [AssociationL, " ", Name, " - ", RegisterL]},
          {form,
-          [{method,post},
-           {name,register},
+          [{method, post},
+           {name, register},
            {action, "register_post.yaws"},
-           {autocomplete,"off"}],
+           {autocomplete, "off"}],
 
-          [{table, [{border,0},{width,"100%"}],
+          [{table, [{border, 0},{width, "100%"}],
             [{tr, [],
               [{td, [],
-                {input, [{type,submit},{value,?TO_HTML(SaveL)}]}},
+                {input, [{type, submit}, {value, ?TO_HTML(SaveL)}]}},
                {td, [],
-                {table, [{border,2}, {cellspacing,1},{cellpadding,1}],
-                 [{tr, [{border,0}],
-                   [{th, [{align,left}], {pre_html, ?TO_HTML(VoucherL)}},
-                    {th, [{align,left}], {pre_html, ?TO_HTML(DateL)}},
-                    {th, [{align,left}], {pre_html, ?TO_HTML(SummaryL)}}
+                {table, [{border, 2}, {cellspacing, 1},{cellpadding, 1}],
+                 [{tr, [{border, 0}],
+                   [{th, [{align, left}], {pre_html, ?TO_HTML(VoucherL)}},
+                    {th, [{align, left}], {pre_html, ?TO_HTML(DateL)}},
+                    {th, [{align, left}], {pre_html, ?TO_HTML(SummaryL)}}
                    ]},
                   {tr, [],
-                   [{td, [{align,left}], {select, [{name,voucher}],
-                                          [{option, [{value, HtmlVid}], HtmlVid},
-                                           {option, [{value, HtmlNextVid}, selected], HtmlNextVid}]}},
-                    {td, [{align,left}], {input, [{name, date},{type, text}, {size," 10"},
-                                                  {id, datepicker},
-                                                  {value,?TO_HTML(Date)}]}},
-                    {td, [{align,left}], {input, [{name, text},{type, text}, {size, "50"},
-                                                  {value,Text}]}}
+                   [{td,
+                     [{align, left}],
+                     {pre_html, ?TO_HTML(HtmlVid)}},
+                    {td,
+                     [{align, left}],
+                     {input, [{name, date},
+                              {type, text},
+                              {size, "10"},
+                              {id, datepicker},
+                              {value, ?TO_HTML(Date)}]}},
+                    {td,
+                     [{align, left}],
+                     {input, [{name, text},
+                              {type, text},
+                              {size, "50"},
+                              {value, Text}]}}
                    ]}
                  ]}}]}]},
            {p, [], []},
-           {table, [{border,2}, {cellspacing,1},{cellpadding,1}],
+           {table, [{border, 2}, {cellspacing, 1},{cellpadding, 1}],
             [{tr, [{border,0}],
-              [{th, [{align,left}], {pre_html, ?TO_HTML(NoteL)}},
-               {th, [{align,left}], {pre_html, ?TO_HTML(DebitL)}},
-               {th, [{align,left}], {pre_html, ?TO_HTML(CreditL)}},
-               {th, [{align,left}], {pre_html, ?TO_HTML(AccountL)}}
+              [{th, [{align, left}], {pre_html, ?TO_HTML(NoteL)}},
+               {th, [{align, left}], {pre_html, ?TO_HTML(DebitL)}},
+               {th, [{align, left}], {pre_html, ?TO_HTML(CreditL)}},
+               {th, [{align, left}], {pre_html, ?TO_HTML(AccountL)}}
               ]} |
              [{tr, [],
                case I#item.amount > 0 of
                    true ->
-                       [{td, [{align,left}], {input, [{name,remark},{type,text},{size,"50"},
-                                                      {value,?TO_HTML(I#item.remark)}]}},
-                        {td, [{align,left}], {input, [{name,debit},{type,text},{size,"10"},
-                                                      {value,?TO_HTML({kr, I#item.amount})}]}},
-                        {td, [{align,left}], {input, [{name,credit},{type,text},{size,"10"},
-                                                      {value,?TO_HTML({kr, 0})}]}},
-                        {td, [{align,left}], account_selection(I#item.account_id, Book)}];
+                       [{td,
+                         [{align, left}],
+                         {input, [{name, remark},
+                                  {type, text},
+                                  {size, "50"},
+                                  {value, ?TO_HTML(I#item.remark)}]}},
+                        {td,
+                         [{align, left}],
+                         {input, [{name, debit},
+                                  {type, text},
+                                  {size, "10"},
+                                  {value, ?TO_HTML({kr, I#item.amount})}]}},
+                        {td,
+                         [{align, left}],
+                         {input, [{name, credit},
+                                  {type, text},
+                                  {size, "10"},
+                                  {value,?TO_HTML({kr, 0})}]}},
+                        {td,
+                         [{align, left}],
+                         account_selection(I#item.account_id, Book)}];
                    false ->
-                       [{td, [{align,left}], {input, [{name,remark},{type,text},{size,"50"},
-                                                      {value,?TO_HTML(I#item.remark)}]}},
-                        {td, [{align,left}], {input, [{name,debit},{type,text},{size,"10"},
-                                                      {value,?TO_HTML({kr, 0})}]}},
-                        {td, [{align,left}], {input, [{name,credit},{type,text},{size,"10"},
-                                                      {value,?TO_HTML({kr, abs(I#item.amount)})}]}},
-                        {td, [{align,left}], account_selection(I#item.account_id, Book)}]
+                       [{td,
+                         [{align, left}],
+                         {input, [{name, remark},
+                                  {type, text},
+                                  {size, "50"},
+                                  {value,?TO_HTML(I#item.remark)}]}},
+                        {td,
+                         [{align, left}],
+                         {input, [{name, debit},
+                                  {type, text},
+                                  {size," 10"},
+                                  {value, ?TO_HTML({kr, 0})}]}},
+                        {td,
+                         [{align, left}],
+                         {input, [{name, credit},
+                                  {type, text},
+                                  {size, "10"},
+                                  {value, ?TO_HTML({kr, abs(I#item.amount)})}]}},
+                        {td,
+                         [{align, left}],
+                         account_selection(I#item.account_id, Book)}]
                end
               } || I <- Items]
             ]}]
@@ -96,27 +130,49 @@ out(Args) ->
      {ssi, "footer.ssi","%%", Bindings}
     ].
 
-get_latest_voucher_id(Args, #book{vouchers = Vouchers} = B) ->
-    lists:max([0 | [V#voucher.id || V <- Vouchers]]).
+%% Update erroneous voucher or create new voucher
+ensure_voucher(Args, B) when is_record(B, book) ->
+    DefaultV =
+        fun() ->
+                #voucher{id = get_latest_voucher_id(B) + 1,
+                         date = get_latest_date(B),
+                         text = "",
+                         items = []}
+        end,
+    V =
+        case yaws_api:queryvar(Args, id) of
+            {ok, Id} ->
+                Vid = list_to_integer(Id), %% BUGBUG
+                case [V || E <- B#book.errors,
+                           V <- B#book.vouchers,
+                           E#error.type =:= voucher, 
+                           E#error.id =:= Vid,
+                           V#voucher.id =:= Vid] of
+                    [] ->
+                        DefaultV();
+                    Vs ->
+                        lists:last(Vs)
+                end;
+            _ ->
+                DefaultV()
+        end,
+    DefaultAccount = 1020, %% BUGBUG
+    I = #item{account_id = DefaultAccount, amount = 0, remark = ""},
+    Items = V#voucher.items ++ lists:duplicate(20, I),
+    V#voucher{items = Items}.
 
-ensure_voucher(Args, B, NextFreeVid) when is_record(B, book), is_integer(NextFreeVid) ->
-    Postgirot = 1020, %% BUGBUG
-    Date = "",
-    ExtraItems = lists:duplicate(20, #item{account_id = Postgirot, amount = 0, remark = ""}),
-    case yaws_api:queryvar(Args, id) of
-        {ok, Id} ->
-            Vid = list_to_integer(Id),
-            case [V || V <- B#book.vouchers, V#voucher.id =:= Vid] of
-                [] ->
-                    #voucher{id = NextFreeVid, date = Date, text = "", items = ExtraItems};
-                [V] ->
-                    V#voucher{items = V#voucher.items ++ ExtraItems}
-            end;
-        undefined ->
-            #voucher{id = NextFreeVid, date = Date, text = "", items = ExtraItems}
-    end.
+get_latest_voucher_id(#book{vouchers = []}) ->
+    0;
+get_latest_voucher_id(#book{vouchers = Vouchers}) ->
+    lists:max([V#voucher.id || V <- Vouchers]).
 
-account_selection(SelectedAid, B)  when is_integer(SelectedAid), is_record(B, book) ->
+get_latest_date(#book{name = Name, vouchers = []}) ->
+    Name ++ "-01-01"; % First January
+get_latest_date(#book{vouchers = Vouchers}) ->
+    V = lists:last(Vouchers),
+    V#voucher.date.
+
+account_selection(SelectedAid, #book{accounts = Accounts}) ->
     Preselected = fun(Aid) when Aid =:= SelectedAid -> [selected]; (_) -> [] end,
     {select,
      [{name,account}],
@@ -124,7 +180,7 @@ account_selection(SelectedAid, B)  when is_integer(SelectedAid), is_record(B, bo
        [{value,?TO_HTML(A#account.id)} | Preselected(A#account.id)],
        {pre_html, [?TO_HTML(A#account.id), ?TO_HTML(" - "),
                    ?TO_HTML(A#account.name), ?TO_HTML(" - "),
-                   ?TO_HTML(A#account.type)]}} || A <- B#book.accounts]}.
+                   ?TO_HTML(A#account.type)]}} || A <- Accounts]}.
 
 </erl>
 

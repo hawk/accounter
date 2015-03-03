@@ -29,33 +29,24 @@ out(Args) ->
 
 gen_index(Args) ->
     BooksDir = accounter:get_books_dir(Args),
-    case file:list_dir(BooksDir) of
+    case accounter:list_books(BooksDir) of
         {ok, Names} ->
             Rev = fun(X, Y) -> X > Y end,
             [
              {ul, [],
               [
                [
-                {li,[], [{p,[], [{a, [{href, ["reports.yaws?name=", Name]}],
-                                  Name}]}]}
-               ] || Name <- lists:sort(Rev, Names), is_dir(BooksDir, Name)]
+                {li,[], [{p,[],
+                          [{a, [{href, ["reports.yaws?name=", Name]}], Name}]}]}
+               ] || Name <- Names]
              }
             ];
         {error, Reason} ->
             [
-             {p, [], ["Yaws server error: ", $",
-                      file:format_error(Reason), $"]},
+             {p, [], ["Yaws server error: ", $\",
+                      file:format_error(Reason), $\"]},
              {p, [], ["books_dir=", BooksDir]}
             ]
-    end.
-
-is_dir(BooksDir, Name) ->
-    DirName = filename:join([BooksDir, Name]),
-    case file:read_file_info(DirName) of
-        {ok, FI} when FI#file_info.type == directory ->
-            true;
-        _ ->
-            false
     end.
 
 </erl>

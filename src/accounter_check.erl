@@ -5,29 +5,29 @@
 
 -module(accounter_check).
 -export([
-         adapt_book/6,
-         adapt_items/5
+         amend_book/6,
+         amend_items/5
         ]).
 
 -include("../include/accounter.hrl").
 
 %%-------------------------------------------------------------------
-%% Adapt
+%% Amend
 %%-------------------------------------------------------------------
 
-adapt_book(Name, Types, Accounts, Budgets, Vouchers, Items) ->
-    {Accounts2, Errors}  = adapt_accounts(Accounts, []),
-    {Vouchers2, Errors2} = adapt_vouchers(Vouchers, Errors),
+amend_book(Name, Types, Accounts, Budgets, Vouchers, Items) ->
+    {Accounts2, Errors}  = amend_accounts(Accounts, []),
+    {Vouchers2, Errors2} = amend_vouchers(Vouchers, Errors),
     {Accounts3, Vouchers3, Errors3} =
-        adapt_items(Accounts2, Vouchers2, Items, Errors2),
-    {Accounts4, Errors4} = adapt_budgets(Accounts3, Budgets, Errors3),
+        amend_items(Accounts2, Vouchers2, Items, Errors2),
+    {Accounts4, Errors4} = amend_budgets(Accounts3, Budgets, Errors3),
     #book{name     = Name,
           types    = lists:keysort(#account_type.name, Types),
           accounts = lists:keysort(#account.id, Accounts4),
           vouchers = lists:keysort(#voucher.id, Vouchers3),
           errors   = lists:sort(Errors4)}.
 
-adapt_accounts(Accounts, Errors) ->
+amend_accounts(Accounts, Errors) ->
     Errors2 = check_missing(Accounts, #account.id, #account.name,
                             account, "missing account name", Errors),
     Errors3 = check_missing(Accounts, #account.id, #account.type,
@@ -91,16 +91,16 @@ check_duplicates2([], _IdPos, _UniqPos, Accounts, _Type,
                   _Reason, _Sev, Errors) ->
     {Accounts, Errors}.
 
-adapt_vouchers(Vouchers, Errors) ->
+amend_vouchers(Vouchers, Errors) ->
     Vouchers2 = lists:keysort(#voucher.id, Vouchers),
     Errors2 = check_missing(Vouchers2, #voucher.id, #voucher.text,
-                           account, "missing voucher text", Errors),
-    {Vouchers3, Errors3} = do_adapt_vouchers(Vouchers2, [], Errors2),
+                            voucher, "missing voucher text", Errors),
+    {Vouchers3, Errors3} = do_amend_vouchers(Vouchers2, [], Errors2),
     {Vouchers3, Errors3}.
 
-do_adapt_vouchers([E | Tail], Vouchers, Errors) when is_record(E, error) ->
-    do_adapt_vouchers(Tail, Vouchers, [E |  Errors]);
-do_adapt_vouchers([H, N | Tail], Vouchers, Errors)
+do_amend_vouchers([E | Tail], Vouchers, Errors) when is_record(E, error) ->
+    do_amend_vouchers(Tail, Vouchers, [E |  Errors]);
+do_amend_vouchers([H, N | Tail], Vouchers, Errors)
   when N#voucher.id =/= H#voucher.id + 1 ->
     E = #error{type   = voucher,
                id     = N#voucher.id,
@@ -108,8 +108,8 @@ do_adapt_vouchers([H, N | Tail], Vouchers, Errors)
                reason = "not subsequent id",
                file   = ?FILE,
                line   = ?LINE},
-    do_adapt_vouchers([N | Tail], [H | Vouchers], [E |  Errors]);
-do_adapt_vouchers([H, N | Tail], Vouchers, Errors)
+    do_amend_vouchers([N | Tail], [H | Vouchers], [E |  Errors]);
+do_amend_vouchers([H, N | Tail], Vouchers, Errors)
   when N#voucher.date < H#voucher.date ->
     E = #error{type   = voucher,
                id     = N#voucher.id,
@@ -117,8 +117,8 @@ do_adapt_vouchers([H, N | Tail], Vouchers, Errors)
                reason = "date should be larger than date of previous voucher",
                file   = ?FILE,
                line   = ?LINE},
-    do_adapt_vouchers([N | Tail], [H | Vouchers], [E |  Errors]);
-do_adapt_vouchers([H = {_Y, M, _D} | Tail], Vouchers, Errors)
+    do_amend_vouchers([N | Tail], [H | Vouchers], [E |  Errors]);
+do_amend_vouchers([H = {_Y, M, _D} | Tail], Vouchers, Errors)
   when M < 1; M > 12 ->
     E = #error{type    = voucher,
                id     = H#voucher.id,
@@ -126,8 +126,8 @@ do_adapt_vouchers([H = {_Y, M, _D} | Tail], Vouchers, Errors)
                reason = "month not within range 1..12",
                file   = ?FILE,
                line   = ?LINE},
-    do_adapt_vouchers(Tail, [H | Vouchers], [E |  Errors]);
-do_adapt_vouchers([H = {_Y, _M, D} | Tail], Vouchers, Errors)
+    do_amend_vouchers(Tail, [H | Vouchers], [E |  Errors]);
+do_amend_vouchers([H = {_Y, _M, D} | Tail], Vouchers, Errors)
   when D < 1; D > 12 ->
     E = #error{type   = voucher,
                id     = H#voucher.id,
@@ -135,19 +135,19 @@ do_adapt_vouchers([H = {_Y, _M, D} | Tail], Vouchers, Errors)
                reason = "day not within range 1..12",
                file   = ?FILE,
                line   = ?LINE},
-    do_adapt_vouchers(Tail, [H | Vouchers], [E |  Errors]);
-do_adapt_vouchers([H | Tail], Vouchers, Errors) ->
-    do_adapt_vouchers(Tail, [H | Vouchers], Errors);
-do_adapt_vouchers([], Vouchers, Errors) ->
+    do_amend_vouchers(Tail, [H | Vouchers], [E |  Errors]);
+do_amend_vouchers([H | Tail], Vouchers, Errors) ->
+    do_amend_vouchers(Tail, [H | Vouchers], Errors);
+do_amend_vouchers([], Vouchers, Errors) ->
     {Vouchers, Errors}.
 
-adapt_items(Accounts, Vouchers, Items, Errors) ->
+amend_items(Accounts, Vouchers, Items, Errors) ->
     {Accounts2, Items2, Errors2} =
         add_missing_item_accounts(Items, Accounts, [], Errors),
     {Vouchers3, Items3, Error3} =
         add_missing_item_vouchers(Items2, Vouchers, [], Errors2),
     {Vouchers4, Errors4} =
-        do_adapt_voucher_items(Accounts2, Vouchers3, Items3, [], Error3),
+        do_amend_voucher_items(Accounts2, Vouchers3, Items3, [], Error3),
     {Accounts2, Vouchers4, Errors4}.
 
 add_missing_item_accounts([I = #item{voucher_id = Vid,
@@ -203,10 +203,10 @@ add_missing_item_vouchers([E | Tail], Accounts, Items, Errors)
 add_missing_item_vouchers([], Vouchers, Items, Errors) ->
     {Vouchers, lists:reverse(Items), Errors}.
 
-do_adapt_voucher_items(Accounts, [V | Tail], Items, Vouchers, Errors)
+do_amend_voucher_items(Accounts, [V | Tail], Items, Vouchers, Errors)
   when V#voucher.items =:=  undefined ->
     Vid = V#voucher.id,
-    {VoucherItems, Items2, Errors2} = adapt_items(Items, Vid, [], [], Errors),
+    {VoucherItems, Items2, Errors2} = amend_items(Items, Vid, [], [], Errors),
     V2 = V#voucher{items = VoucherItems},
     CalcSum = fun(I, Acc) -> Acc + I#item.amount end,
     case lists:foldl(CalcSum, 0, VoucherItems) of
@@ -217,10 +217,10 @@ do_adapt_voucher_items(Accounts, [V | Tail], Items, Vouchers, Errors)
                        reason = "voucher should have items",
                        file   = ?FILE,
                        line   = ?LINE},
-            do_adapt_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
+            do_amend_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
                                    [E | Errors2]);
         0 ->
-            do_adapt_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
+            do_amend_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
                                    Errors2);
         NonZero ->
             E = #error{type = voucher,
@@ -229,13 +229,13 @@ do_adapt_voucher_items(Accounts, [V | Tail], Items, Vouchers, Errors)
                        reason = "sum of all items must be 0 within the voucher",
                        file   = ?FILE,
                        line   = ?LINE},
-            do_adapt_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
+            do_amend_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
                                    [E | Errors2])
     end;
-do_adapt_voucher_items(_Accounts, [], [], Vouchers, Errors) ->
+do_amend_voucher_items(_Accounts, [], [], Vouchers, Errors) ->
     {Vouchers, Errors}.
 
-adapt_items([I | Tail], Vid, Match, Rem, Errors)
+amend_items([I | Tail], Vid, Match, Rem, Errors)
   when I#item.voucher_id =:=  Vid ->
     case I#item.amount of
         {0, 0} ->
@@ -247,13 +247,13 @@ adapt_items([I | Tail], Vid, Match, Rem, Errors)
                            ", only one should be 0,00 kr",
                        file   = ?FILE,
                        line   = ?LINE},
-            adapt_items(Tail, Vid, [I#item{amount = 0} | Match], Rem,
+            amend_items(Tail, Vid, [I#item{amount = 0} | Match], Rem,
                         [E | Errors]);
         {Ore, 0} ->
-            adapt_items(Tail, Vid, [I#item{amount = Ore} | Match], Rem,
+            amend_items(Tail, Vid, [I#item{amount = Ore} | Match], Rem,
                         Errors);
         {0, Ore} ->
-            adapt_items(Tail, Vid, [I#item{amount = -Ore} | Match], Rem,
+            amend_items(Tail, Vid, [I#item{amount = -Ore} | Match], Rem,
                         Errors);
         {Debit, Credit} ->
             E = #error{type = item,
@@ -264,22 +264,22 @@ adapt_items([I | Tail], Vid, Match, Rem, Errors)
                            ", one must be 0,00 kr",
                        file   = ?FILE,
                        line   = ?LINE},
-            adapt_items(Tail, Vid, [I#item{amount = Debit - Credit} | Match],
+            amend_items(Tail, Vid, [I#item{amount = Debit - Credit} | Match],
                         Rem, [E | Errors])
         end;
-adapt_items([I | Tail], Vid, Match, Rem, Errors) ->
-    adapt_items(Tail, Vid, Match, [I | Rem], Errors);
-adapt_items([], _Vid, Match, Rem, Errors) ->
+amend_items([I | Tail], Vid, Match, Rem, Errors) ->
+    amend_items(Tail, Vid, Match, [I | Rem], Errors);
+amend_items([], _Vid, Match, Rem, Errors) ->
     {lists:reverse(Match), lists:reverse(Rem), Errors}.
 
-adapt_budgets(Accounts, Budgets, Errors) ->
+amend_budgets(Accounts, Budgets, Errors) ->
     Pos = #budget.account_id,
     {Budgets2, Errors2} = check_duplicates(Budgets, Pos, Pos, budget,
                                           "duplicate budget id", error, Errors),
-    {Accounts3, Errors3} = do_adapt_budgets(Budgets2, Accounts, Errors2),
+    {Accounts3, Errors3} = do_amend_budgets(Budgets2, Accounts, Errors2),
     {Accounts3, Errors3}.
 
-do_adapt_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
+do_amend_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
                  Accounts, Errors) ->
     case [A || A <- Accounts, A#account.id =:=  Aid] of
         [] ->
@@ -297,13 +297,13 @@ do_adapt_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
                          result  = false,
                          balance = false,
                          budget = Bal},
-            do_adapt_budgets(Tail, [A | Accounts], [E | Errors]);
+            do_amend_budgets(Tail, [A | Accounts], [E | Errors]);
         [A] ->
             Accounts2 = [X || X <- Accounts, X#account.id =/= Aid],
             A2 = A#account{budget = Bal},
             case A2#account.result of
                 true ->
-                    do_adapt_budgets(Tail, [A2 | Accounts2], Errors);
+                    do_amend_budgets(Tail, [A2 | Accounts2], Errors);
                 false ->
                     E = #error{type = budget,
                                id = Aid,
@@ -312,8 +312,8 @@ do_adapt_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
                                         " not is included in result",
                                file   = ?FILE,
                                line   = ?LINE},
-                    do_adapt_budgets(Tail, [A2 | Accounts2], [E | Errors])
+                    do_amend_budgets(Tail, [A2 | Accounts2], [E | Errors])
             end
     end;
-do_adapt_budgets([], Accounts, Errors) ->
+do_amend_budgets([], Accounts, Errors) ->
     {Accounts, Errors}.
