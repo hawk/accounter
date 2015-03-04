@@ -18,14 +18,27 @@ out(Args) ->
     Delim = ";",
     V = parse_voucher_post(Args, Delim),
     accounter_csv:export_voucher(Dir, V, Delim),
-    NewVid = ?TO_HTML(V#voucher.id),
-    {redirect_local, ["/reports.yaws", accounter:forward_query([], Args),
-                      "#voucher_", NewVid]}.
+    HtmlVid = ?TO_HTML(V#voucher.id),
+    case [V || E <- Book#book.errors,
+               E#error.type =:= voucher,
+               E#error.id =:= V#voucher.id] of
+        [] ->
+            {redirect_local,
+             ["/reports.yaws",
+              accounter:forward_query([], Args),
+              "#voucher_", HtmlVid
+             ]};
+        _ ->
+            {redirect_local,
+             ["/register.yaws",
+              accounter:forward_query([], Args),
+              "?voucher_id=", HtmlVid
+             ]}
+    end.
 
 parse_voucher_post(Args, Delim) when is_list(Delim) ->
-    [{"voucher",Vid},
-     {"date",Date},
-     {"text",Text} | Items] = yaws_api:parse_post(Args),
+    [{"voucher", Vid}, {"date", Date}, {"text", Text} | Items] =
+        yaws_api:parse_post(Args),
     BooksDir = accounter:get_books_dir(Args),
     CsvStyle = accounter_csv:csv_style(BooksDir),
     VoucherTokens = lists:concat([Vid, Delim, Date, Delim, Text]),
@@ -52,11 +65,11 @@ parse_items(CsvStyle,
             [{"remark", ""}, {"debit", _}, {"credit", _},
              {"account", _} | Items], Vid, Delim) ->
     parse_items(CsvStyle, Items, Vid, Delim);
-parse_items(CsvStyle, 
+parse_items(CsvStyle,
             [{"remark", undefined}, {"debit", _}, {"credit", _},
              {"account", _} | Items], Vid, Delim) ->
     parse_items(CsvStyle, Items, Vid, Delim);
-parse_items(CsvStyle, 
+parse_items(CsvStyle,
             [{"remark", Remark}, {"debit", Debit}, {"credit", Credit},
              {"account", Account} | Items], Vid, Delim) ->
     ItemTokens = lists:concat([Vid, Delim, Account, Delim, Debit,

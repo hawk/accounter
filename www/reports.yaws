@@ -175,16 +175,16 @@ gen_errors(Bindings, B) when is_record(B, book) ->
          {tr, [{border,1}],
           [
            {td, [], {pre_html, ?BINDING(string:to_upper(atom_to_list(Type)), Bindings)}},
-           {td, [], {a, [{href, "#" ++ key_to_ref(Type, Id) }],
+           {td, [], {a, [{href, "#" ++ id_to_ref(Type, Id) }],
                      {pre_html, ?TO_HTML(Id)}}},
            {td, [], {pre_html, ?TO_HTML(Val)}},
            {td, [], {pre_html, ?TO_HTML(Reason)}}
           ]} || #error{type = Type, id = Id, value = Val, reason = Reason} <- B#book.errors]
         ]}].
 
-key_to_ref(item, Key) ->
-    key_to_ref(voucher, Key);
-key_to_ref(Type, Key) ->
+id_to_ref(item, Key) ->
+    id_to_ref(voucher, Key);
+id_to_ref(Type, Key) ->
     atom_to_list(Type) ++ "_" ++ ?TO_HTML(Key).
 
 %%%-------------------------------------------------------------------
@@ -230,7 +230,7 @@ gen_journal_row(Args, Accounts, #voucher{id = Vid, date = Date, text = Text, ite
                       {td, [{border,1}], {pre_html, ?TO_HTML(Remark)}},
                       to_debit_credit(Amount),
                       {td, [{border,1}],
-                       {a, [{href, "#" ++ key_to_ref(account, Aid)}],
+                       {a, [{href, "#" ++ id_to_ref(account, Aid)}],
                         {pre_html, [?TO_HTML(Aid),
                                     ?TO_HTML(" - "),
                                     ?TO_HTML(Name)]}}}]},
@@ -242,7 +242,7 @@ gen_journal_row(Args, Accounts, #voucher{id = Vid, date = Date, text = Text, ite
      {tr, [],
       [
        {th, [{align,right}],
-        {a, [{name, key_to_ref(voucher, Vid)},
+        {a, [{name, id_to_ref(voucher, Vid)},
              {href, ["register.yaws", accounter:forward_query([{id, Vid2}], Args)]} %% OPT
             ], Vid2}},
        {th, [{align,left}], {pre_html,?TO_HTML(Date)}},
@@ -281,7 +281,7 @@ gen_ledge_rows(Bindings,
                 ItemFun =
                     fun(#item{account_id = ItemAid, amount = Amount, remark = Remark},
                         {IN, ID, IC, IB}) ->
-                            VoucherAttr = [{href, "#" ++ key_to_ref(voucher, Vid)}],
+                            VoucherAttr = [{href, "#" ++ id_to_ref(voucher, Vid)}],
                             IN2 = IN + 1,
                             IB2 = IB + Amount,
                             {ID2, IC2} =
@@ -320,7 +320,7 @@ gen_ledge_rows(Bindings,
             NumberOfL = ?BINDING("NUMBER_OF", Bindings),
             SumL = ?BINDING("SUM", Bindings),
             [
-             {h4, [],{a, [{name, key_to_ref(account, Aid)}, {href, "#" ++ key_to_ref(summary, Aid)}],
+             {h4, [],{a, [{name, id_to_ref(account, Aid)}, {href, "#" ++ id_to_ref(summary, Aid)}],
                       {pre_html,
                        [?TO_HTML(Aid), " - ",
                         ?TO_HTML(Name),
@@ -464,7 +464,7 @@ gen_summary_account(B, SummaryType, #account{id = Aid, name = Name, type = T, bu
         0 when Budget =:= undefined ->
             {[], 0, 0, 0};
         Summary ->
-            Attrs = [{href, "#" ++ key_to_ref(account, Aid)}, {name, key_to_ref(summary, Aid)}],
+            Attrs = [{href, "#" ++ id_to_ref(account, Aid)}, {name, id_to_ref(summary, Aid)}],
             {Cols, BudSum, CompSum} = gen_comparison_cols(B, SummaryType, T, Summary, Budget),
             Row = {tr, [{border,0}],
                    [{td, [{border,0}], {a, Attrs, {pre_html, ?TO_HTML(Name)}}},
@@ -525,7 +525,7 @@ gen_budget_type(Bindings, B, T, Accounts) ->
             [{th, [{width, "75%"},{align,left}], {pre_html, ?TO_HTML(AccountL)}},
              {th, [{width, "25%"},{align,left}], {pre_html, ?TO_HTML(BalanceL)}}]},
            [{tr, [{border,0}],
-             [{td, [{align, left}], {a, [{href, "#" ++ key_to_ref(account, A#account.id)}],
+             [{td, [{align, left}], {a, [{href, "#" ++ id_to_ref(account, A#account.id)}],
                {pre_html, ?TO_HTML(A#account.name)}}}       ,
               {td, [{align, right}],
                {pre_html, ?TO_HTML({kr, negate(B, T, A#account.budget)})}}]

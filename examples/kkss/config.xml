@@ -40,6 +40,7 @@
     <binding><replace>TABLES</replace><with>Tabeller</with></binding>
     <binding><replace>TYPE</replace><with>Typ</with></binding>
     <binding><replace>TOTAL</replace><with>Total</with></binding>
+    <binding><replace>UPDATE</replace><with>Korrigera felaktigheter</with></binding>
     <binding><replace>VOUCHER</replace><with>Verif</with></binding>
     <binding><replace>VOUCHERS</replace><with>Verifikationer</with></binding>
   </bindings>
