@@ -5,7 +5,8 @@
 
 -module(accounter_html).
 -export([
-         to_html/1
+         to_html/1, forward_query/2
+
         ]).
 
 to_html({kr, Int}) when is_integer(Int) ->
@@ -43,3 +44,35 @@ to_html_string([Char | Tail]) ->
     [Char | to_html_string(Tail)];
 to_html_string([]) ->
     [].
+
+forward_query(Args, NewQuery) ->
+    OldQuery = [{Key, Val} || {Key, Val} <- yaws_api:parse_query(Args)],
+    TmpUniqQuery = uniq_query(NewQuery, []),
+    UniqQuery = uniq_query(OldQuery, TmpUniqQuery),
+    io:format("New:  ~p\n", [NewQuery]),
+    io:format("Old:  ~p\n", [OldQuery]),
+    io:format("Uniq: ~p\n", [UniqQuery]),
+    to_query(UniqQuery).
+
+uniq_query([{Key, _Val} = KeyVal| Query], Acc) ->
+    case lists:keymember(Key, 1, Acc) of
+        true  -> uniq_query(Query, Acc);
+        false -> uniq_query(Query, [KeyVal | Acc])
+    end;
+uniq_query([], Acc) ->
+    lists:reverse(Acc).
+
+to_query([]) ->
+    [];
+to_query(Query) ->
+    ["?", to_query2(Query)].
+
+to_query2([{Key, Val} | Tail]) when is_atom(Key) ->
+    to_query2([{atom_to_list(Key), Val} | Tail]);
+to_query2([{Key, Val} | Tail]) when is_list(Key), is_list(Val) ->
+    case Tail of
+        [] ->
+            [Key, "=", Val];
+        _ ->
+            [Key, "=", Val, "&", to_query2(Tail)]
+    end.

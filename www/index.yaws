@@ -30,7 +30,7 @@ out(Args) ->
 gen_index(Args) ->
     BooksDir = accounter:get_books_dir(Args),
     case accounter:list_books(BooksDir) of
-        {ok, Names} ->
+        {ok, SortedNames} ->
             Rev = fun(X, Y) -> X > Y end,
             [
              {ul, [],
@@ -38,7 +38,7 @@ gen_index(Args) ->
                [
                 {li,[], [{p,[],
                           [{a, [{href, ["reports.yaws?name=", Name]}], Name}]}]}
-               ] || Name <- Names]
+               ] || Name <- SortedNames]
              }
             ];
         {error, Reason} ->

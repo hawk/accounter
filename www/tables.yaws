@@ -30,12 +30,12 @@ out(Args) ->
       [
        {h2,[], {pre_html, [AssociationL, " ", Book#book.name, " - ", TablesL]}},
        gen_index(Args, Bindings),
-       gen_table(Book, Bindings, "errors",   F(error),   ErrorChars),
-       gen_table(Book, Bindings, "budget",   F(budget),  BudgetChars),
-       gen_table(Book, Bindings, "vouchers", F(voucher), VoucherChars),
-       gen_table(Book, Bindings, "items",    F(item),    ItemChars),
-       gen_table(Book, Bindings, "accounts", F(account), AccountChars),
-       gen_table(Book, Bindings, "types",    F(type),    TypeChars)
+       gen_table(Book, Bindings, "errors",   F(error),        ErrorChars),
+       gen_table(Book, Bindings, "budget",   F(budget),       BudgetChars),
+       gen_table(Book, Bindings, "vouchers", F(voucher),      VoucherChars),
+       gen_table(Book, Bindings, "items",    F(item),         ItemChars),
+       gen_table(Book, Bindings, "accounts", F(account),      AccountChars),
+       gen_table(Book, Bindings, "types",    F(account_type), TypeChars)
       ]},
      {ssi, "footer.ssi","%%", Bindings}
     ].
@@ -64,7 +64,7 @@ gen_index(Args, Bindings) ->
       ]}
     ].
 
-gen_table(#book{Name = Name}, Bindings, Type, FileName, Chars) ->
+gen_table(#book{name = Name}, Bindings, Type, FileName, Chars) ->
     AssociationL = ?BINDING("ASSOCIATION", Bindings),
     [
      {br},

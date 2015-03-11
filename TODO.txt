@@ -1,8 +1,13 @@
+build
+  require erlang
+  require yaws
+  upload prebuilt zipfile
+  download jquery
+
 management
   create year
     copy files
-    prune files
-    import result and balance
+    export
   generate multi-year report
     one row per account
     one column per year
@@ -14,17 +19,9 @@ management
 
 register
   simplify input
-    date
-      default to last voucher
-      first jan for first voucher
     account
-  edit last voucher
-  suppress errors within this voucher (persistent)
-  if errors then
-    display error messages
-  else
-    store
-  end
+  confirm
+    overwrite
 
 storage
   xml

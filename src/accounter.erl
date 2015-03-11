@@ -6,9 +6,9 @@
 -module(accounter).
 -export([
          get_work_dir/1,
-         get_books_dir/1,get_book_name/1, list_books/1,
-         get_bindings/1, lookup_binding/4,
-         get_var/3, forward_query/2,
+         get_books_dir/1,get_book_name/1, get_latest_book_name/1, list_books/1,
+         get_latest_voucher_id/1, get_latest_date/1,
+         get_bindings/1, lookup_binding/4, get_var/3,
          pad_right/2, from_ore/1, from_ore/2
         ]).
 
@@ -38,15 +38,20 @@ get_bindings(Args) ->
     AccounterContext = [accounter | FileContext],
     Bindings = ?XML_LOOKUP(bindings, Accounter, AccounterContext),
     BindingsContext = [bindings | AccounterContext],
-    Read = [format_binding(B, BindingsContext, ?FILE, ?LINE) || B <- Bindings],
-    Gen = gen_bindings(Accounter, AccounterContext),
-    Read ++ Gen.
+    User = [format_binding(B, BindingsContext, ?FILE, ?LINE) || B <- Bindings],
+    Builtin = gen_bindings(Args, Accounter, AccounterContext),
+    Builtin ++ User.
 
-gen_bindings(Accounter, AccounterContext) ->
+gen_bindings(Args, Accounter, AccounterContext) ->
+    Latest = get_latest_book_name(Args),
+    Name = get_book_name(Args, Latest),
     Association = ?XML_LOOKUP(association, Accounter, AccounterContext),
     LogoRef = ?XML_LOOKUP(logo_ref, Accounter, AccounterContext),
     LogoIcon = ?XML_LOOKUP(logo_icon, Accounter, AccounterContext),
     [
+     {"BOOK_LATEST", Latest},
+     {"BOOK_NAME", Name},
+     {"BOOK_REF", "?name="++Name},
      {"ASSOCIATION", Association},
      {"LOGO_REF", LogoRef},
      {"LOGO_ICON", LogoIcon}
@@ -100,6 +105,9 @@ get_var(#arg{} = Args, Key, Default) ->
    case yaws_api:queryvar(Args, Key) of
         {ok, Val} ->
             Val;
+       Tuple when is_tuple(Tuple) ->
+           %% Multiple values. Return first.
+           element(1, Tuple);
         undefined when is_function(Default) ->
             Default();
         undefined ->
@@ -107,16 +115,21 @@ get_var(#arg{} = Args, Key, Default) ->
     end.
 
 get_book_name(Args) ->
-    Fun = fun() ->
-                  BooksDir = get_books_dir(Args),
-                  case list_books(BooksDir) of
-                      {ok , [Name | _]} ->
-                          Name;
-                      {error, _Reason} ->
-                          integer_to_list(element(1, erlang:date()))
-                  end
-          end,
-    get_var(Args, name, Fun).
+    DefaultFun = fun() -> get_latest_book_name(Args) end,
+    get_book_name(Args, DefaultFun).
+
+get_book_name(Args, Default) ->
+    get_var(Args, name, Default).
+
+get_latest_book_name(Args) ->
+    BooksDir = get_books_dir(Args),
+    case list_books(BooksDir) of
+        {ok, RevSortedNames} ->
+            hd(RevSortedNames);
+        {error, _Reason} ->
+            {Year, _Month, _Day} = erlang:date(),
+            integer_to_list(Year)
+    end.
 
 list_books(BooksDir) ->
     case file:list_dir(BooksDir) of
@@ -124,36 +137,28 @@ list_books(BooksDir) ->
             {error, file:format_error(enoent)};
         {ok, Names} ->
             Rev = fun(X, Y) -> X > Y end,
-            Names2 = [Name || Name <- lists:sort(Rev, Names),
-                              is_dir(BooksDir, Name)],
-            {ok, Names2};
+            SortedNames =
+                [Name || Name <- lists:sort(Rev, Names),
+                         is_dir(BooksDir, Name)],
+            {ok, SortedNames};
         {error, Reason} ->
             {error, file:format_error(Reason)}
     end.
 
+get_latest_voucher_id(#book{vouchers = []}) ->
+    0;
+get_latest_voucher_id(#book{vouchers = Vouchers}) ->
+    lists:max([V#voucher.id || V <- Vouchers]).
+
+get_latest_date(#book{name = Name, vouchers = []}) ->
+    Name ++ "-01-01"; % First January
+get_latest_date(#book{vouchers = Vouchers}) ->
+    V = lists:last(Vouchers),
+    V#voucher.date.
+
 is_dir(BooksDir, Name) ->
     DirName = filename:join([BooksDir, Name]),
     filelib:is_dir(DirName).
-
-forward_query(NewQuery, Args) ->
-    OldQuery = [{Key, Val} || {Key, Val} <- yaws_api:parse_query(Args),
-                              not lists:keymember(Key, 1, NewQuery)],
-    to_query(NewQuery ++ OldQuery).
-
-to_query([]) ->
-    [];
-to_query(Query) ->
-    ["?", to_query2(Query)].
-
-to_query2([{Key, Val} | Tail]) when is_atom(Key) ->
-    to_query2([{atom_to_list(Key), Val} | Tail]);
-to_query2([{Key, Val} | Tail]) when is_list(Key), is_list(Val) ->
-    case Tail of
-        [] ->
-            [Key, "=", Val];
-        _ ->
-            [Key, "=", Val, "&", to_query2(Tail)]
-    end.
 
 %%-------------------------------------------------------------------
 %% Paddings

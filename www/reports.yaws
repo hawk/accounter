@@ -132,13 +132,13 @@ gen_print(Args, Bindings, Book) ->
               {pre_html, [AssociationL, " ", Book#book.name, " - ", PrintoutL]}}},
      {ul, [],
       [
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "errors"}], Args)]}], {pre_html, ?TO_HTML(ErrorMsgsL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "balance"}], Args)]}], {pre_html, ?TO_HTML(BalanceReportL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "result"}], Args)]}], {pre_html, ?TO_HTML(ResultReportL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "budget"}], Args)]}], {pre_html, ?TO_HTML(BudgetL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "comparison"}], Args)]}], {pre_html, ?TO_HTML(ComparisonL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "journal"}], Args)]}], {pre_html, ?TO_HTML(JournalL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter:forward_query([{report, "ledge"}], Args)]}], {pre_html, ?TO_HTML(LedgerL)}}]}]}
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "errors"}])]}], {pre_html, ?TO_HTML(ErrorMsgsL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "balance"}])]}], {pre_html, ?TO_HTML(BalanceReportL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "result"}])]}], {pre_html, ?TO_HTML(ResultReportL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "budget"}])]}], {pre_html, ?TO_HTML(BudgetL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "comparison"}])]}], {pre_html, ?TO_HTML(ComparisonL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "journal"}])]}], {pre_html, ?TO_HTML(JournalL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "ledge"}])]}], {pre_html, ?TO_HTML(LedgerL)}}]}]}
       ]}
     ].
 
@@ -243,7 +243,7 @@ gen_journal_row(Args, Accounts, #voucher{id = Vid, date = Date, text = Text, ite
       [
        {th, [{align,right}],
         {a, [{name, id_to_ref(voucher, Vid)},
-             {href, ["register.yaws", accounter:forward_query([{id, Vid2}], Args)]} %% OPT
+             {href, ["register.yaws", accounter_html:forward_query(Args, [{id, Vid2}])]} %% OPT
             ], Vid2}},
        {th, [{align,left}], {pre_html,?TO_HTML(Date)}},
        {th, [{align,left},{colspan,5}], {pre_html,?TO_HTML(Text)}}]},

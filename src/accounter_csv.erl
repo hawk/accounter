@@ -218,7 +218,7 @@ tokens_to_vouchers(new_style = CsvStyle,
     tokens_to_vouchers(CsvStyle, Tail, Vouchers);
 tokens_to_vouchers(CsvStyle, [[Id, Date, Text] | Tail], Vouchers) ->
     V = (catch #voucher{id   = to_int(voucher, Id, Id),
-                        date = to_date(voucher, Id, Date),
+                        date = to_date(CsvStyle, voucher, Id, Date),
                         text = to_string(voucher, Id, Text)}),
     tokens_to_vouchers(CsvStyle, Tail, [V | Vouchers]);
 tokens_to_vouchers(_CsvStyle, [H = [Id | _] | _Tail], _) ->
@@ -295,15 +295,18 @@ to_ore(Type, Id, Chars) ->
 strip(String) ->
     string:strip(String, both, $ ).
 
-to_date(Type, Id, Chars) ->
+to_date(CsvStyle, Type, Id, Chars) ->
     case string:tokens(Chars, "-: ") of
         [Year, Month, Day | _HourMinSec] ->
             {to_int(Type, Id, Year),
              to_int(Type, Id, Month),
              to_int(Type, Id, Day)};
-        _ ->
+        _ when CsvStyle =:= old_style ->
             bail_out(Type, Id, Chars,
-                  "bad date, should be like YYYY-MM-DD HH:MM:SS", ?FILE, ?LINE)
+                  "bad date, should be like YYYY-MM-DD HH:MM:SS", ?FILE, ?LINE);
+        _ when CsvStyle =:= new_style ->
+            bail_out(Type, Id, Chars,
+                  "bad date, should be like YYYY-MM-DD", ?FILE, ?LINE)
     end.
 
 bail_out(Type, Id, Chars, Reason, File, Line) ->
@@ -419,11 +422,11 @@ accounts_header(new_style, Delim) ->
      from_string("IncludeInBalance"), $\n
     ].
 
-vouchers_to_chars(_CsvStyle_style, Vouchers, Delim) ->
+vouchers_to_chars(CsvStyle, Vouchers, Delim) ->
     [
      [
       from_int(Id), Delim,
-      from_date(Date), Delim,
+      from_date(CsvStyle,Date), Delim,
       from_string(Text), $\n
      ] || #voucher{id   = Id,
                    date = Date,
@@ -506,12 +509,12 @@ types_header(new_style, Delim) ->
      from_string("Negate"), $\n
     ].
 
-errors_to_chars(_CsvStyle, Bindings, Errors, Delim) ->
+errors_to_chars(CsvStyle, Bindings, Errors, Delim) ->
     [
      [
       ?BINDING(string:to_upper(atom_to_list(Type)), Bindings), Delim,
-      from_any(Id), Delim,
-      from_any(Val), Delim,
+      from_any(CsvStyle, Id), Delim,
+      from_any(CsvStyle, Val), Delim,
       from_string(Reason), $\n
      ] || #error{type   = Type,
                  id     = Id,
@@ -522,22 +525,22 @@ errors_header(old_style, Delim) ->
     [
      from_string("Typ"), Delim,
      from_string("Id"), Delim,
-     from_string("Ajabaja"), Delim,
+     from_string("Dåligt värde"), Delim,
      from_string("Beskrivning"), $\n
     ];
 errors_header(new_style, Delim) ->
     [
      from_string("Type"), Delim,
      from_string("Id"), Delim,
-     from_string("BadValue"), Delim,
+     from_string("Bad value"), Delim,
      from_string("Reason"), $\n
     ].
 
-from_any(Int) when is_integer(Int) ->
+from_any(_CsvStyle, Int) when is_integer(Int) ->
     from_int(Int);
-from_any(Date = {_, _, _}) ->
-    from_date(Date);
-from_any(String) when is_list(String) ->
+from_any(CsvStyle, Date = {_, _, _}) ->
+    from_date(CsvStyle, Date);
+from_any(_CsvStyle, String) when is_list(String) ->
     from_string(String).
 
 from_int(Int) ->
@@ -548,14 +551,15 @@ from_string([]) ->
 from_string(String) ->
     [$", String, $"].
 
-from_date({Year, Month, Day}) ->
+from_date(old_style, Date) ->
+    [from_date(new_style, Date), " 00:00:00"];
+from_date(new_style, {Year, Month, Day}) ->
     [
      from_int(Year),
      $-,
      from_int(Month),
      $-,
      from_int(Day)
-     | " 00:00:00"
     ].
 
 from_bool(Bool) ->

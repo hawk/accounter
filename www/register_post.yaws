@@ -11,29 +11,47 @@
 
 out(Args) ->
     Cwd  = filename:dirname(Args#arg.fullpath),
-    Name = accounter:get_book_name(Args),
+    Name = accounter:get_latest_book_name(Args),
     Book = accounter_csv:import_book(Args, Name),
     BooksDir = accounter:get_books_dir(Args),
     Dir = filename:join([BooksDir, Name]),
     Delim = ";",
     V = parse_voucher_post(Args, Delim),
-    accounter_csv:export_voucher(Dir, V, Delim),
-    HtmlVid = ?TO_HTML(V#voucher.id),
-    case [V || E <- Book#book.errors,
-               E#error.type =:= voucher,
-               E#error.id =:= V#voucher.id] of
-        [] ->
-            {redirect_local,
-             ["/reports.yaws",
-              accounter:forward_query([], Args),
-              "#voucher_", HtmlVid
-             ]};
-        _ ->
-            {redirect_local,
-             ["/register.yaws",
-              accounter:forward_query([], Args),
-              "?voucher_id=", HtmlVid
-             ]}
+    Vid = V#voucher.id,
+    HtmlVid = ?TO_HTML(Vid),
+    NextId = accounter:get_latest_voucher_id(Book) + 1,
+    ErrIds = [ErrId || #error{type = voucher, id = ErrId} <- Book#book.errors],
+    ValidIds = [NextId | ErrIds],
+    WantedName = accounter:get_book_name(Args),
+    IsValid = lists:member(Vid, ValidIds),
+    if
+        WantedName =/= Name ->
+            %% BUGBUG: Type = book/year
+            exit({error, [voucher, Vid, WantedName,
+                          "Invalid year." ++ Name ++ " expected.",
+                          ?FILE, ?LINE]});
+        not IsValid ->
+            exit({error, [voucher, Vid, Vid,
+                          "Invalid voucher id",
+                          ?FILE, ?LINE]});
+        true ->
+            accounter_csv:export_voucher(Dir, V, Delim),
+            case ErrIds of
+                [] ->
+                    {redirect_local,
+                     ["/reports.yaws",
+                      accounter_html:forward_query(Args, [{"name", Name}]),
+                      "#voucher_", HtmlVid
+                     ]};
+                _ ->
+                    {redirect_local,
+                     ["/register.yaws",
+                      accounter_html:forward_query(Args,
+                                                   [{"name", Name},
+                                                    {"voucher_id", HtmlVid}
+                                                   ])
+                     ]}
+            end
     end.
 
 parse_voucher_post(Args, Delim) when is_list(Delim) ->

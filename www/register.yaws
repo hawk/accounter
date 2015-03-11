@@ -21,7 +21,7 @@ out(Args) ->
      {ehtml,
       [
        {h2,[], [{pre_html, [AssociationL, " ", Name]}]},
-       gen_errors(Bindings, Book),
+       gen_errors(Args, Bindings, Book),
        gen_register(Args, Bindings, Book),
        {ssi, "footer.ssi","%%", Bindings}
       ]
@@ -31,15 +31,15 @@ out(Args) ->
 ensure_voucher(Args, Book) when is_record(Book, book) ->
     DefaultV =
         fun() ->
-                #voucher{id = get_latest_voucher_id(Book) + 1,
-                         date = get_latest_date(Book),
+                #voucher{id = accounter:get_latest_voucher_id(Book) + 1,
+                         date = accounter:get_latest_date(Book),
                          text = "",
                          items = []}
         end,
     V =
         case yaws_api:queryvar(Args, voucher_id) of
             {ok, Id} ->
-                Vid = list_to_integer(Id), %% BUGBUG
+                Vid = list_to_integer(Id), %% BUGBUG: May crash
                 case [V || E <- Book#book.errors,
                            V <- Book#book.vouchers,
                            E#error.type =:= voucher, 
@@ -58,20 +58,9 @@ ensure_voucher(Args, Book) when is_record(Book, book) ->
     Items = V#voucher.items ++ lists:duplicate(20, I),
     V#voucher{items = Items}.
 
-get_latest_voucher_id(#book{vouchers = []}) ->
-    0;
-get_latest_voucher_id(#book{vouchers = Vouchers}) ->
-    lists:max([V#voucher.id || V <- Vouchers]).
-
-get_latest_date(#book{name = Name, vouchers = []}) ->
-    Name ++ "-01-01"; % First January
-get_latest_date(#book{vouchers = Vouchers}) ->
-    V = lists:last(Vouchers),
-    V#voucher.date.
-
-gen_errors(Bindings, Book) when Book#book.errors =:= [] ->
+gen_errors(Args, Bindings, Book) when Book#book.errors =:= [] ->
     [];
-gen_errors(Bindings, Book) when is_record(Book, book) ->
+gen_errors(Args, Bindings, Book) when is_record(Book, book) ->
     UpdateL = ?BINDING("UPDATE", Bindings),
     ErrorMsgsL = ?BINDING("ERROR_MSGS", Bindings),
     TypeL = ?BINDING("TYPE", Bindings),
@@ -96,7 +85,7 @@ gen_errors(Bindings, Book) when is_record(Book, book) ->
            [
             {td, [], {pre_html, ?BINDING(string:to_upper(atom_to_list(Type)),
                                          Bindings)}},
-            {td, [], id_to_href(Type, Id)},
+            {td, [], id_to_href(Args, Type, Id)},
             {td, [], {pre_html, ?TO_HTML(Val)}},
             {td, [], {pre_html, ?TO_HTML(Reason)}}
            ]} || #error{type = Type,
@@ -107,11 +96,12 @@ gen_errors(Bindings, Book) when is_record(Book, book) ->
       ]}
     ].
 
-id_to_href(item, Id) ->
-    id_to_href(voucher, Id);
-id_to_href(voucher, Id) ->
-    {a, [{href, "?voucher_id=" ++ ?TO_HTML(Id)}], {pre_html, ?TO_HTML(Id)}};
-id_to_href(_Type, Id) ->
+id_to_href(Args, item, Id) ->
+    id_to_href(Args, voucher, Id);
+id_to_href(Args, voucher, Id) ->
+    {a, [{href, [accounter_html:forward_query(Args, [{"voucher_id", ?TO_HTML(Id)}])]}],
+     {pre_html, ?TO_HTML(Id)}};
+id_to_href(_Args, _Type, Id) ->
     {a, [], {pre_html, ?TO_HTML(Id)}}.
 
 gen_register(Args, Bindings, Book)  when is_record(Book, book) ->
@@ -127,7 +117,12 @@ gen_register(Args, Bindings, Book)  when is_record(Book, book) ->
        {form,
         [{method, post},
          {name, register},
-         {action, "register_post.yaws"},
+         {action, 
+          [
+           "/register_post.yaws",
+           accounter_html:forward_query(Args, [{"name", Book#book.name}])
+          ]
+         },
          {autocomplete, "off"}],
         [
          gen_voucher(Bindings, Book, HtmlVid, Date, Text),
