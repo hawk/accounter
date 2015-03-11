@@ -49,9 +49,6 @@ forward_query(Args, NewQuery) ->
     OldQuery = [{Key, Val} || {Key, Val} <- yaws_api:parse_query(Args)],
     TmpUniqQuery = uniq_query(NewQuery, []),
     UniqQuery = uniq_query(OldQuery, TmpUniqQuery),
-    io:format("New:  ~p\n", [NewQuery]),
-    io:format("Old:  ~p\n", [OldQuery]),
-    io:format("Uniq: ~p\n", [UniqQuery]),
     to_query(UniqQuery).
 
 uniq_query([{Key, _Val} = KeyVal| Query], Acc) ->

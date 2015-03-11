@@ -1,21 +1,26 @@
+old menu
+  custom
+  select, register, reports
+  tables
+
+new menu
+  custom
+  main: register, reports, off-line, print
+  year: select, export csv, create year
+  edit: budget, accounts, types, config
+
 build
   require erlang
   require yaws
   upload prebuilt zipfile
   download jquery
 
-management
-  create year
-    copy files
-    export
-  generate multi-year report
-    one row per account
-    one column per year
-  comparison report
-    result - budget
-    result - prev year
-  edit budget
-  edit accounts
+generate multi-year report
+  one row per account
+  one column per year
+comparison report
+  result - budget
+  result - prev year
 
 register
   simplify input
@@ -23,15 +28,8 @@ register
   confirm
     overwrite
 
-storage
-  xml
-  csv
-    old
-    new
-  export
-    excel
-  import
-    visma
+import
+  visma
 
 currency
   kr/ore
