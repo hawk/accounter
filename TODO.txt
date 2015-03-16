@@ -1,3 +1,8 @@
+create assoc
+  choose from templates and work dir
+create year
+  copy latest year from current assoc
+
 old menu
   custom
   select, register, reports

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<accounter>
+  <association>Kanotklubben Strömstararnas bokföring</association>
+  <logo_ref>http://www.kkss.se</logo_ref>
+  <logo_icon>icons/kksslogo.jpg</logo_icon>
+  <template>svenska</template>
+</accounter>

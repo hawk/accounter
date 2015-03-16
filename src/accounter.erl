@@ -28,7 +28,7 @@ get_books_dir(Args) ->
     filename:join([get_work_dir(Args), "books"]).
 
 get_config_file(Args) ->
-    filename:join([get_work_dir(Args), "config.xml"]).
+    filename:join([get_work_dir(Args), "accounter.xml"]).
 
 get_bindings(Args) ->
     ConfigFile = get_config_file(Args),
@@ -36,11 +36,21 @@ get_bindings(Args) ->
     FileContext = [ConfigFile, file],
     Accounter = ?XML_LOOKUP(accounter, [Config], FileContext),
     AccounterContext = [accounter | FileContext],
-    Bindings = ?XML_LOOKUP(bindings, Accounter, AccounterContext),
-    BindingsContext = [bindings | AccounterContext],
+    Template = ?XML_LOOKUP(template, Accounter, FileContext),
+    AppDir = app_dir(),
+    BindingsFile = filename:join([AppDir, "templates",
+                                  Template, "bindings.xml"]),
+    Bindings0 = [accounter_xml:parse_simple(BindingsFile)],
+    TemplateContext = [BindingsFile, file],
+    Bindings = ?XML_LOOKUP(bindings, Bindings0, TemplateContext),
+    BindingsContext = [bindings | TemplateContext],
     User = [format_binding(B, BindingsContext, ?FILE, ?LINE) || B <- Bindings],
     Builtin = gen_bindings(Args, Accounter, AccounterContext),
     Builtin ++ User.
+
+app_dir() ->
+    {file, BeamPath} = code:is_loaded(?MODULE),
+    filename:dirname(filename:dirname(BeamPath)).
 
 gen_bindings(Args, Accounter, AccounterContext) ->
     Latest = get_latest_book_name(Args),

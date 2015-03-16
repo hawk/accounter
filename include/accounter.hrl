@@ -11,47 +11,51 @@
 
 -define(TO_HTML(IoList), accounter_html:to_html(IoList)).
 
--record(book,
-        {name,
-         types,
-         accounts,
-         vouchers,
-         errors}).
+-record(account_type,
+        {name               :: string(),
+         negate             :: boolean(),
+         include_in_result  :: boolean(),
+         include_in_balance :: boolean()}).
 
 -record(account,
-        {id,
-         name,
-         type,
-         desc,
-         old_id,
-         result,
-         balance,
-         budget}).
-
--record(account_type,
-        {name,
-         negate}).
+        {id                 :: non_neg_integer(),
+         old_id             :: non_neg_integer(),
+         name               :: string(),
+         type               :: string(),
+         desc               :: string(),
+         budget             :: integer(),
+         include_in_result  :: boolean(),
+         include_in_balance :: boolean()}).
 
 -record(item,
-        {voucher_id,
-         account_id,
-         amount, % Negative if credit
-         remark}).
+        {voucher_id :: non_neg_integer(),
+         account_id :: non_neg_integer(),
+         amount     :: integer(), % Negative if credit
+         remark     :: string()}).
 
 -record(voucher,
-        {id,
-         date,
-         text,
-         items}).
+        {id    :: non_neg_integer(),
+         date  :: {Year  ::non_neg_integer(),
+                   Month ::non_neg_integer(),
+                   Day   ::non_neg_integer()},
+         text  :: string(),
+         items :: [#item{}]}).
 
 -record(budget,
-        {account_id,
-         account_balance}).
+        {account_id      :: non_neg_integer(),
+         account_balance :: integer()}).
 
 -record(error,
-        {type,
-         id,
-         value,
-         reason,
-         file,
-         line}).
+        {type   :: string(),
+         id     :: non_neg_integer(),
+         value  :: any(),
+         reason :: string(),
+         file   :: file:filename(),
+         line   :: non_neg_integer()}).
+
+-record(book,
+        {name     :: string(),
+         types    :: [#account_type{}],
+         accounts :: [#account{}],
+         vouchers :: [#voucher{}],
+         errors   :: [#error{}]}).

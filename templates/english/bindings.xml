@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bindings>
+  <binding><replace>ACCOUNT</replace><with>Account</with></binding>
+  <binding><replace>ACCOUNTS</replace><with>Accounts</with></binding>
+  <binding><replace>ACCOUNT_TYPES</replace><with>Account types</with></binding>
+  <binding><replace>BALANCE</replace><with>Balance</with></binding>
+  <binding><replace>BALANCE_REPORT</replace><with>Balance report</with></binding>
+  <binding><replace>BUDGET</replace><with>Budget</with></binding>
+  <binding><replace>CHOOSE_YEAR</replace><with>Choose a year</with></binding>
+  <binding><replace>COMPARISON</replace><with>Comparison between result and budget</with></binding>
+  <binding><replace>CREDIT</replace><with>Credit</with></binding>
+  <binding><replace>DATE</replace><with>Date</with></binding>
+  <binding><replace>DEBIT</replace><with>Debit</with></binding>
+  <binding><replace>DESCRIPTION</replace><with>Description</with></binding>
+  <binding><replace>DIFFERENCE</replace><with>Diff</with></binding>
+  <binding><replace>ERROR_MSGS</replace><with>Error messages</with></binding>
+  <binding><replace>ERRORS</replace><with>Invalid value</with></binding>
+  <binding><replace>FILE</replace><with>File</with></binding>
+  <binding><replace>ID</replace><with>Id</with></binding>
+  <binding><replace>ITEM</replace><with>Event</with></binding>
+  <binding><replace>ITEMS</replace><with>Events</with></binding>
+  <binding><replace>JOURNAL</replace><with>Journal</with></binding>
+  <binding><replace>LEDGER</replace><with>Ledger</with></binding>
+  <binding><replace>NO_ERROR_MSGS</replace><with>No error messages</with></binding>
+  <binding><replace>NOTE</replace><with>Description</with></binding>
+  <binding><replace>NUMBER_OF</replace><with>Count</with></binding>
+  <binding><replace>PRINTOUT</replace><with>Printout</with></binding>
+  <binding><replace>REGISTER</replace><with>Register</with></binding>
+  <binding><replace>REPORTS</replace><with>Reports</with></binding>
+  <binding><replace>RESULT</replace><with>Result</with></binding>
+  <binding><replace>RESULT_REPORT</replace><with>Result report</with></binding>
+  <binding><replace>SAVE</replace><with>Save</with></binding>
+  <binding><replace>SUM</replace><with>Sum</with></binding>
+  <binding><replace>SUMMARY</replace><with>Summary</with></binding>
+  <binding><replace>TABLES</replace><with>Tablesdeller</with></binding>
+  <binding><replace>TYPE</replace><with>Type</with></binding>
+  <binding><replace>TOTAL</replace><with>Total</with></binding>
+  <binding><replace>UPDATE</replace><with>Correct defects</with></binding>
+  <binding><replace>VOUCHER</replace><with>Voucher</with></binding>
+  <binding><replace>VOUCHERS</replace><with>Vouchers</with></binding>
+</bindings>

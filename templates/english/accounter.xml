@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<accounter>
+  <association>Plusgirot</association>
+  <logo_ref>http://www.plusgirot.com</logo_ref>
+  <logo_icon>http://www.nordea.se/Images/39-16596/plusgirot-black.gif</logo_icon>
+  <template>english</template>
+</accounter>

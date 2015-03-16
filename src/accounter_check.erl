@@ -41,12 +41,13 @@ amend_accounts(Accounts, Errors) ->
     {Accounts5,
      [#error{type   = account,
              id     = A#account.id,
-             value  = A#account.balance,
+             value  = A#account.include_in_balance,
              reason = "account should be included in result or balance",
              file   = ?FILE,
              line   = ?LINE}
-      || A <- Accounts, A#account.balance =:=  A#account.result] ++
-     Errors5
+      || A <- Accounts,
+         A#account.include_in_balance =:= A#account.include_in_result] ++
+         Errors5
     }.
 
 check_missing(Tuples, IdPos, MandPos, Type, Reason, Errors) ->
@@ -168,8 +169,8 @@ add_missing_item_accounts([I = #item{voucher_id = Vid,
                          type    = "ERROR",
                          desc    = "",
                          old_id  = Aid,
-                         result  = true,
-                         balance = true},
+                         include_in_result  = true,
+                         include_in_balance = true},
             add_missing_item_accounts(Tail, [A | Accounts],
                                       [I | Items], [E | Errors])
     end;
@@ -289,19 +290,19 @@ do_amend_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
                        reason = "reference to missing account",
                        file   = ?FILE,
                        line   = ?LINE},
-            A = #account{id      = Aid,
-                         name    = lists:concat(["BUDGET_ERROR_",Aid]),
-                         type    = "ERROR",
-                         desc    = "",
-                         old_id  = Aid,
-                         result  = false,
-                         balance = false,
-                         budget = Bal},
+            A = #account{id                 = Aid,
+                         name               = lists:concat(["BUDGET_ERROR_",Aid]),
+                         type               = "ERROR",
+                         desc               = "",
+                         old_id             = Aid,
+                         include_in_result  = false,
+                         include_in_balance = false,
+                         budget             = Bal},
             do_amend_budgets(Tail, [A | Accounts], [E | Errors]);
         [A] ->
             Accounts2 = [X || X <- Accounts, X#account.id =/= Aid],
             A2 = A#account{budget = Bal},
-            case A2#account.result of
+            case A2#account.include_in_result of
                 true ->
                     do_amend_budgets(Tail, [A2 | Accounts2], Errors);
                 false ->

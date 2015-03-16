@@ -98,11 +98,16 @@ file_to_chars(FileName) ->
 chars_to_book(CsvStyle, Name,
               TypeChars, AccountChars, BudgetChars, VoucherChars, ItemChars,
               Delim) ->
-    Types    = tokens_to_types(CsvStyle, to_tokens(TypeChars, Delim), []),
-    Accounts = tokens_to_accounts(CsvStyle, to_tokens(AccountChars, Delim), []),
-    Budgets  = tokens_to_budgets(CsvStyle, to_tokens(BudgetChars, Delim), []),
-    Vouchers = tokens_to_vouchers(CsvStyle, to_tokens(VoucherChars, Delim), []),
-    Items    = tokens_to_items(CsvStyle, to_tokens(ItemChars, Delim), []),
+    Types    = tokens_to_types(CsvStyle,
+                               to_tokens(TypeChars, Delim), []),
+    Accounts = tokens_to_accounts(CsvStyle,
+                                  to_tokens(AccountChars, Delim), Types, []),
+    Budgets  = tokens_to_budgets(CsvStyle,
+                                 to_tokens(BudgetChars, Delim), []),
+    Vouchers = tokens_to_vouchers(CsvStyle,
+                                  to_tokens(VoucherChars, Delim), []),
+    Items    = tokens_to_items(CsvStyle,
+                               to_tokens(ItemChars, Delim), []),
     accounter_check:amend_book(Name, Types, Accounts, Budgets, Vouchers, Items).
 
 %%-------------------------------------------------------------------
@@ -149,42 +154,52 @@ skip_spaces(Chars) ->
 tokens_to_accounts(old_style = CsvStyle,
                    [["Konto_Nr", "Konto_namn", "Konto_Typ", "K_beskrivning",
                      "Gamla konto_Nr", "resultat", "balans"] | Tail],
+                   Types,
                    Accounts) ->
-    tokens_to_accounts(CsvStyle, Tail, Accounts);
+    tokens_to_accounts(CsvStyle, Tail, Types, Accounts);
 tokens_to_accounts(new_style = CsvStyle,
                    [["Id", "Name", "Type", "Description",
                      "IncludeInResult", "IncludeInBalance"] | Tail],
+                   Types,
                    Accounts) ->
-    tokens_to_accounts(CsvStyle, Tail, Accounts);
+    tokens_to_accounts(CsvStyle, Tail, Types, Accounts);
 tokens_to_accounts(old_style = CsvStyle,
-                   [[Id, Name, Type, Desc, OldId, Result, Balance] | Tail],
+                   [[Id, Name, Type, Desc, OldId,
+                     IncludeInResult, IncludeInBalance] | Tail],
+                   Types,
                    Accounts) ->
     A = (catch #account{id      = to_int(account, Id, Id),
-                        name    = to_string(account, Id, Name),
-                        type    = to_string(account, Id, Type),
-                        desc    = to_string(account, Id, Desc),
                         old_id  = to_int(account, Id, OldId),
-                        result  = to_bool(account, Id, Result),
-                        balance = to_bool(account, Id, Balance)}),
-    tokens_to_accounts(CsvStyle, Tail, [A | Accounts]);
-tokens_to_accounts(new_style = CsvStyle,
-                   [[Id, Name, Type, Desc, Result, Balance] | Tail],
-                   Accounts) ->
-    A = (catch #account{id      = to_int(account, Id, Id),
                         name    = to_string(account, Id, Name),
                         type    = to_string(account, Id, Type),
                         desc    = to_string(account, Id, Desc),
+                        include_in_result = to_bool(account, Id, IncludeInResult),
+                        include_in_balance = to_bool(account, Id, IncludeInBalance)}),
+    tokens_to_accounts(CsvStyle, Tail, Types, [A | Accounts]);
+tokens_to_accounts(new_style = CsvStyle,
+                   [[Id, Name, Type0, Desc, Result, Balance] | Tail],
+                   Types,
+                   Accounts) ->
+    Type = to_string(account, Id, Type0),
+    A = (catch #account{id      = to_int(account, Id, Id),
                         old_id  = to_int(account, Id, Id), % Backwards compat
-                        result  = to_bool(account, Id, Result),
-                        balance = to_bool(account, Id, Balance)}),
-    tokens_to_accounts(CsvStyle, Tail, [A | Accounts]);
-tokens_to_accounts(old_style, [H = [Id | _] | _Tail], _) ->
+                        name    = to_string(account, Id, Name),
+                        type    = Type,
+                        desc    = to_string(account, Id, Desc),
+                        include_in_result =
+                            to_bool(account, Id, Result, Type, Types,
+                                    #account_type.include_in_result),
+                        include_in_balance =
+                            to_bool(account, Id, Balance, Type, Types,
+                                    #account_type.include_in_balance)}),
+    tokens_to_accounts(CsvStyle, Tail, Types, [A | Accounts]);
+tokens_to_accounts(old_style, [H = [Id | _] | _Tail], _, _) ->
     Arity = integer_to_list(length(H)),
     bail_out(account, Id, Arity, "bad arity, 7 expected", ?FILE, ?LINE);
-tokens_to_accounts(new_style, [H = [Id | _] | _Tail], _) ->
+tokens_to_accounts(new_style, [H = [Id | _] | _Tail], _,  _) ->
     Arity = integer_to_list(length(H)),
     bail_out(account, Id, Arity, "bad arity, 6 expected", ?FILE, ?LINE);
-tokens_to_accounts(_CsvStyle, [], Accounts) ->
+tokens_to_accounts(_CsvStyle, [], _, Accounts) ->
     lists:reverse(Accounts).
 
 tokens_to_items(old_style = CsvStyle,
@@ -247,12 +262,23 @@ tokens_to_types(old_style = CsvStyle,
                 [["Konto_typ", "Konto_negativ"] | Tail],  Types) ->
     tokens_to_types(CsvStyle, Tail, Types);
 tokens_to_types(new_style = CsvStyle,
-                [["AcountType", "Negate"] | Tail],  Types) ->
+                [["AcountType", "Negate", "IncludeInResult", "IncludeInBalance"] | Tail],
+                Types) ->
     tokens_to_types(CsvStyle, Tail, Types);
-tokens_to_types(CsvStyle, [[Id, Balance] | Tail],  Types) ->
+tokens_to_types(old_style = CsvStyle, [[Id, Balance] | Tail],  Types) ->
     X = (catch #account_type{name   = to_string(type, Id, Id),
                              negate = to_bool(type, Id, Balance)}),
     tokens_to_types(CsvStyle, Tail, [X | Types]);
+tokens_to_types(new_style = CsvStyle, [[Id, Balance, IncludeInResult, IncludeInBalance] | Tail],
+                Types) ->
+    X = (catch #account_type{name   = to_string(type, Id, Id),
+                             negate = to_bool(type, Id, Balance),
+                             include_in_result =
+                                 to_bool(account, Id, IncludeInResult),
+                             include_in_balance =
+                                 to_bool(account, Id,IncludeInBalance)}),
+    tokens_to_types(CsvStyle, Tail, [X | Types]);
+
 tokens_to_types(_CsvStyle, [H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
     bail_out(type, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
@@ -272,6 +298,22 @@ to_bool(Type, Id, Chars) ->
         [$0] -> false;
         [$1] -> true;
         _    -> bail_out(Type, Id, Chars, "bad boolean", ?FILE, ?LINE)
+    end.
+
+to_bool(Type, Id, Chars, Type, Types, Pos) ->
+    case Chars of
+        [$0] -> false;
+        [$1] -> true;
+        []   -> add_default(Type, Types, Pos, Chars);
+        _    -> bail_out(Type, Id, Chars, "bad boolean", ?FILE, ?LINE)
+    end.
+
+add_default(Type, Types, Pos, Chars) ->
+    case lists:keyfind(Type, Pos, Types) of
+        false ->
+            bail_out(account_type, Type, Chars, "missing account type", ?FILE, ?LINE);
+        Default ->
+            element(Pos, Default)
     end.
 
 to_string(_Type, _Id, Chars) ->
@@ -358,7 +400,7 @@ book_to_chars(CsvStyle, Bindings, B, Delim) ->
       [types_header(CsvStyle, Delim),
        types_to_chars(CsvStyle, B#book.types, Delim)],
       [accounts_header(CsvStyle, Delim),
-       accounts_to_chars(CsvStyle, B#book.accounts, Delim)],
+       accounts_to_chars(CsvStyle, B#book.accounts, B#book.types, Delim)],
       [budgets_header(CsvStyle, Delim),
        budgets_to_chars(CsvStyle, B#book.accounts, Delim)],
       [vouchers_header(CsvStyle, Delim),
@@ -369,38 +411,24 @@ book_to_chars(CsvStyle, Bindings, B, Delim) ->
        errors_to_chars(CsvStyle, Bindings, B#book.errors, Delim)]
     }.
 
-accounts_to_chars(old_style, Accounts, Delim) ->
+types_header(old_style, Delim) ->
     [
-     [
-      from_int(Id), Delim,
-      from_string(Name), Delim,
-      from_string(Type), Delim,
-      from_string(Desc), Delim,
-      from_int(OldId), Delim,
-      from_bool(Result), Delim,
-      from_bool(Balance), $\n
-     ] || #account{id = Id,
-                   name = Name,
-                   type = Type,
-                   desc = Desc,
-                   old_id = OldId,
-                   result = Result,
-                   balance = Balance} <- Accounts];
-accounts_to_chars(new_style, Accounts, Delim) ->
+     from_string("Konto_typ"), Delim,
+     from_string("Konto_negativ"), $\n
+    ];
+types_header(new_style, Delim) ->
     [
-     [
-      from_int(Id), Delim,
-      from_string(Name), Delim,
-      from_string(Type), Delim,
-      from_string(Desc), Delim,
-      from_bool(Result), Delim,
-      from_bool(Balance), $\n
-     ] || #account{id = Id,
-                   name = Name,
-                   type = Type,
-                   desc = Desc,
-                   result = Result,
-                   balance = Balance} <- Accounts].
+     from_string("AccountType"), Delim,
+     from_string("Negate"), $\n
+    ].
+
+types_to_chars(_CsvStyle, Types, Delim) ->
+    [
+     [from_string(Name), Delim,
+      from_bool(Neg), $\n
+     ] || #account_type{name   = Name,
+                        negate = Neg} <- Types
+    ].
 
 accounts_header(old_style, Delim) ->
     [
@@ -422,6 +450,50 @@ accounts_header(new_style, Delim) ->
      from_string("IncludeInBalance"), $\n
     ].
 
+accounts_to_chars(old_style, Accounts, Types, Delim) ->
+    [
+     [
+      from_int(Id), Delim,
+      from_string(Name), Delim,
+      from_string(Type), Delim,
+      from_string(Desc), Delim,
+      from_int(OldId), Delim,
+      opt_from_bool(IncludeInResult, Type, #account_type.include_in_result, Types), Delim,
+      opt_from_bool(IncludeInBalance, Type, #account_type.include_in_balance, Types), $\n
+     ] || #account{id = Id,
+                   old_id = OldId,
+                   name = Name,
+                   type = Type,
+                   desc = Desc,
+                   include_in_result = IncludeInResult,
+                   include_in_balance = IncludeInBalance} <- Accounts].
+
+budgets_header(old_style, Delim) ->
+    [
+     from_string("Konto_Nr"), Delim,
+     from_string("Konto_saldo"), $\n
+    ];
+budgets_header(new_style, Delim) ->
+    [
+     from_string("AccountId"), Delim,
+     from_string("AccountBalance"), $\n
+    ].
+
+budgets_to_chars(_CsvStyle, Accounts, Delim) ->
+    [
+     [from_int(Id), Delim,
+      from_int(Bal), $\n
+     ] || #account{id     = Id,
+                   budget = Bal} <- Accounts, Bal =/= undefined
+    ].
+
+vouchers_header(_CsvStyle, Delim) ->
+    [
+     from_string("Id"), Delim,
+     from_string("Date"), Delim,
+     from_string("Text"), $\n
+    ].
+
 vouchers_to_chars(CsvStyle, Vouchers, Delim) ->
     [
      [
@@ -431,28 +503,6 @@ vouchers_to_chars(CsvStyle, Vouchers, Delim) ->
      ] || #voucher{id   = Id,
                    date = Date,
                    text = Text} <- Vouchers].
-
-vouchers_header(_CsvStyle, Delim) ->
-    [
-     from_string("Id"), Delim,
-     from_string("Date"), Delim,
-     from_string("Text"), $\n
-    ].
-
-voucher_items_to_chars(CsvStyle, Vouchers, Delim) ->
-    [items_to_chars(CsvStyle, V#voucher.items, Delim) || V <- Vouchers].
-
-items_to_chars(_CsvStyle, Items, Delim) ->
-    [
-     [
-      from_int(Vid), Delim,
-      from_int(Aid), Delim,
-      accounter:from_ore(Ore, Delim), Delim,
-      from_string(Remark), $\n
-     ] || #item{voucher_id = Vid,
-                account_id = Aid,
-                amount     = Ore,
-                remark     = Remark} <- Items].
 
 items_header(old_style, Delim) ->
     [
@@ -471,43 +521,20 @@ items_header(new_style, Delim) ->
      from_string("Remark"), $\n
     ].
 
-budgets_to_chars(_CsvStyle, Accounts, Delim) ->
-    [
-     [from_int(Id), Delim,
-      from_int(Bal), $\n
-     ] || #account{id     = Id,
-                   budget = Bal} <- Accounts, Bal =/= undefined
-    ].
+voucher_items_to_chars(CsvStyle, Vouchers, Delim) ->
+    [items_to_chars(CsvStyle, V#voucher.items, Delim) || V <- Vouchers].
 
-budgets_header(old_style, Delim) ->
+items_to_chars(_CsvStyle, Items, Delim) ->
     [
-     from_string("Konto_Nr"), Delim,
-     from_string("Konto_saldo"), $\n
-    ];
-budgets_header(new_style, Delim) ->
-    [
-     from_string("AccountId"), Delim,
-     from_string("AccountBalance"), $\n
-    ].
-
-types_to_chars(_CsvStyle, Types, Delim) ->
-    [
-     [from_string(Name), Delim,
-      from_bool(Neg), $\n
-     ] || #account_type{name   = Name,
-                        negate = Neg} <- Types
-    ].
-
-types_header(old_style, Delim) ->
-    [
-     from_string("Konto_typ"), Delim,
-     from_string("Konto_negativ"), $\n
-    ];
-types_header(new_style, Delim) ->
-    [
-     from_string("AccountType"), Delim,
-     from_string("Negate"), $\n
-    ].
+     [
+      from_int(Vid), Delim,
+      from_int(Aid), Delim,
+      accounter:from_ore(Ore, Delim), Delim,
+      from_string(Remark), $\n
+     ] || #item{voucher_id = Vid,
+                account_id = Aid,
+                amount     = Ore,
+                remark     = Remark} <- Items].
 
 errors_to_chars(CsvStyle, Bindings, Errors, Delim) ->
     [
@@ -566,4 +593,10 @@ from_bool(Bool) ->
     case Bool of
         false -> $0;
         true  -> $1
+    end.
+
+opt_from_bool(Bool, Type, Pos, Types) ->
+    case lists:keyfind(Type, Pos, Types) of
+        false -> "";
+        true  -> from_bool(Bool)
     end.

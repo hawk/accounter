@@ -1,4 +1,4 @@
-<html>
+html>
 
 <erl>
 
@@ -35,16 +35,16 @@ gen_reports(Args, Bindings, Book, Name, Report) when Report =:= "all" ->
          gen_errors(Bindings, Book),
          {br},
          {hr},
-         gen_summary(Bindings, Book, balance, #account.balance, BalanceReportL),
+         gen_summary(Bindings, Book, balance, #account.include_in_balance, BalanceReportL),
          {br},
          {hr},
-         gen_summary(Bindings, Book, result, #account.result, ResultReportL),
+         gen_summary(Bindings, Book, result, #account.include_in_result, ResultReportL),
          {br},
          {hr},
          gen_budget(Bindings, Book),
          {br},
          {hr},
-         gen_summary(Bindings, Book, comparison, #account.result, ComparisonL),
+         gen_summary(Bindings, Book, comparison, #account.include_in_result, ComparisonL),
          {br},
          {hr},
          gen_journal(Args, Bindings, Book),
@@ -70,13 +70,13 @@ gen_reports(Args, Bindings, Book, Name, Report) ->
           "errors" ->
               gen_errors(Bindings, Book);
           "balance" ->
-              gen_summary(Bindings, Book, balance, #account.balance, BalanceReportL);
+              gen_summary(Bindings, Book, balance, #account.include_in_balance, BalanceReportL);
           "result" ->
-              gen_summary(Bindings, Book, result, #account.result, ResultReportL);
+              gen_summary(Bindings, Book, result, #account.include_in_result, ResultReportL);
           "budget" ->
               gen_budget(Bindings, Book);
           "comparison" ->
-              gen_summary(Bindings, Book, comparison, #account.result, ComparisonL);
+              gen_summary(Bindings, Book, comparison, #account.include_in_result, ComparisonL);
           "journal" ->
               gen_journal(Args, Bindings, Book);
           "ledge" ->
