@@ -12,20 +12,20 @@
 -define(TO_HTML(IoList), accounter_html:to_html(IoList)).
 
 -record(account_type,
-        {name               :: string(),
-         negate             :: boolean(),
-         include_in_result  :: boolean(),
-         include_in_balance :: boolean()}).
+        {name       :: string(),
+         negate     :: boolean(),
+         in_result  :: boolean(),
+         in_balance :: boolean()}).
 
 -record(account,
-        {id                 :: non_neg_integer(),
-         old_id             :: non_neg_integer(),
-         name               :: string(),
-         type               :: string(),
-         desc               :: string(),
-         budget             :: integer(),
-         include_in_result  :: boolean(),
-         include_in_balance :: boolean()}).
+        {id         :: non_neg_integer(),
+         old_id     :: non_neg_integer(),
+         name       :: string(),
+         type       :: string(),
+         desc       :: string(),
+         budget     :: integer(),
+         in_result  :: boolean(),
+         in_balance :: boolean()}).
 
 -record(item,
         {voucher_id :: non_neg_integer(),

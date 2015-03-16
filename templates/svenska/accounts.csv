@@ -1,4 +1,4 @@
-Id;Name;Type;Description;IncludeInResult;IncludeInBalance
+Id;Name;Type;Description;InResult;InBalance
 1000;"Immateriella anläggningstillgångar";"TILLGÅNGAR";
 1009;"Årets avskrivningar på immateriella anläggningstillgångar";"TILLGÅNGAR";;
 1110;"Byggnader";"TILLGÅNGAR";;

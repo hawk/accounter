@@ -1,4 +1,4 @@
-"AccountType";"Negate";IncludeInResult;IncludeInBalance
+"AccountType";"Negate";InResult;InBalance
 "TILLGÅNGAR";0;0:1
 "FONDER";1;0:1
 "EGET KAPITAL OCH SKULDER";1;0;1

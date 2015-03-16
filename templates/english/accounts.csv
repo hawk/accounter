@@ -1,4 +1,4 @@
-Id;Name;Type;Description;IncludeInResult;IncludeInBalance
+Id;Name;Type;Description;InResult;InBalance
 1000;Intangible assets;"ASSETS";;
 1110;Buildings and properties;"ASSETS";;
 1130;Properties and other assets (non charge off);"ASSETS";;

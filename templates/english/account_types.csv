@@ -1,4 +1,4 @@
-"AccountType";"Negate";IncludeInResult;IncludeInBalance
+"AccountType";"Negate";InResult;InBalance
 "ASSETS";0;0:1
 "FUNDS";1;0:1
 "EQUITY AND DEPTS";1;0;1

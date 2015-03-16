@@ -159,13 +159,13 @@ tokens_to_accounts(old_style = CsvStyle,
     tokens_to_accounts(CsvStyle, Tail, Types, Accounts);
 tokens_to_accounts(new_style = CsvStyle,
                    [["Id", "Name", "Type", "Description",
-                     "IncludeInResult", "IncludeInBalance"] | Tail],
+                     "InResult", "InBalance"] | Tail],
                    Types,
                    Accounts) ->
     tokens_to_accounts(CsvStyle, Tail, Types, Accounts);
 tokens_to_accounts(old_style = CsvStyle,
                    [[Id, Name, Type, Desc, OldId,
-                     IncludeInResult, IncludeInBalance] | Tail],
+                     InResult, InBalance] | Tail],
                    Types,
                    Accounts) ->
     A = (catch #account{id      = to_int(account, Id, Id),
@@ -173,8 +173,8 @@ tokens_to_accounts(old_style = CsvStyle,
                         name    = to_string(account, Id, Name),
                         type    = to_string(account, Id, Type),
                         desc    = to_string(account, Id, Desc),
-                        include_in_result = to_bool(account, Id, IncludeInResult),
-                        include_in_balance = to_bool(account, Id, IncludeInBalance)}),
+                        in_result = to_bool(account, Id, InResult),
+                        in_balance = to_bool(account, Id, InBalance)}),
     tokens_to_accounts(CsvStyle, Tail, Types, [A | Accounts]);
 tokens_to_accounts(new_style = CsvStyle,
                    [[Id, Name, Type0, Desc, Result, Balance] | Tail],
@@ -186,12 +186,12 @@ tokens_to_accounts(new_style = CsvStyle,
                         name    = to_string(account, Id, Name),
                         type    = Type,
                         desc    = to_string(account, Id, Desc),
-                        include_in_result =
+                        in_result =
                             to_bool(account, Id, Result, Type, Types,
-                                    #account_type.include_in_result),
-                        include_in_balance =
+                                    #account_type.in_result),
+                        in_balance =
                             to_bool(account, Id, Balance, Type, Types,
-                                    #account_type.include_in_balance)}),
+                                    #account_type.in_balance)}),
     tokens_to_accounts(CsvStyle, Tail, Types, [A | Accounts]);
 tokens_to_accounts(old_style, [H = [Id | _] | _Tail], _, _) ->
     Arity = integer_to_list(length(H)),
@@ -262,21 +262,21 @@ tokens_to_types(old_style = CsvStyle,
                 [["Konto_typ", "Konto_negativ"] | Tail],  Types) ->
     tokens_to_types(CsvStyle, Tail, Types);
 tokens_to_types(new_style = CsvStyle,
-                [["AcountType", "Negate", "IncludeInResult", "IncludeInBalance"] | Tail],
+                [["AcountType", "Negate", "InResult", "InBalance"] | Tail],
                 Types) ->
     tokens_to_types(CsvStyle, Tail, Types);
 tokens_to_types(old_style = CsvStyle, [[Id, Balance] | Tail],  Types) ->
     X = (catch #account_type{name   = to_string(type, Id, Id),
                              negate = to_bool(type, Id, Balance)}),
     tokens_to_types(CsvStyle, Tail, [X | Types]);
-tokens_to_types(new_style = CsvStyle, [[Id, Balance, IncludeInResult, IncludeInBalance] | Tail],
+tokens_to_types(new_style = CsvStyle, [[Id, Balance, InResult, InBalance] | Tail],
                 Types) ->
     X = (catch #account_type{name   = to_string(type, Id, Id),
                              negate = to_bool(type, Id, Balance),
-                             include_in_result =
-                                 to_bool(account, Id, IncludeInResult),
-                             include_in_balance =
-                                 to_bool(account, Id,IncludeInBalance)}),
+                             in_result =
+                                 to_bool(account, Id, InResult),
+                             in_balance =
+                                 to_bool(account, Id, InBalance)}),
     tokens_to_types(CsvStyle, Tail, [X | Types]);
 
 tokens_to_types(_CsvStyle, [H = [Id | _] | _Tail], _) ->
@@ -446,8 +446,8 @@ accounts_header(new_style, Delim) ->
      from_string("Name"), Delim,
      from_string("Type"), Delim,
      from_string("Description"), Delim,
-     from_string("IncludeInResult"), Delim,
-     from_string("IncludeInBalance"), $\n
+     from_string("InResult"), Delim,
+     from_string("InBalance"), $\n
     ].
 
 accounts_to_chars(old_style, Accounts, Types, Delim) ->
@@ -458,15 +458,15 @@ accounts_to_chars(old_style, Accounts, Types, Delim) ->
       from_string(Type), Delim,
       from_string(Desc), Delim,
       from_int(OldId), Delim,
-      opt_from_bool(IncludeInResult, Type, #account_type.include_in_result, Types), Delim,
-      opt_from_bool(IncludeInBalance, Type, #account_type.include_in_balance, Types), $\n
+      opt_from_bool(InResult, Type, #account_type.in_result, Types), Delim,
+      opt_from_bool(InBalance, Type, #account_type.in_balance, Types), $\n
      ] || #account{id = Id,
                    old_id = OldId,
                    name = Name,
                    type = Type,
                    desc = Desc,
-                   include_in_result = IncludeInResult,
-                   include_in_balance = IncludeInBalance} <- Accounts].
+                   in_result = InResult,
+                   in_balance = InBalance} <- Accounts].
 
 budgets_header(old_style, Delim) ->
     [
@@ -597,6 +597,15 @@ from_bool(Bool) ->
 
 opt_from_bool(Bool, Type, Pos, Types) ->
     case lists:keyfind(Type, Pos, Types) of
-        false -> "";
-        true  -> from_bool(Bool)
+        false ->
+            %% BUGBUG: Error
+            from_bool(Bool);
+        _ ->
+            Val = element(Pos, Type),
+            if
+                Val =:= Bool ->
+                    "";
+                true ->
+                    from_bool(Bool)
+            end
     end.
