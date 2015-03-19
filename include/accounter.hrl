@@ -11,6 +11,8 @@
 
 -define(TO_HTML(IoList), accounter_html:to_html(IoList)).
 
+-define(FQ(Args, Query), accounter_html:forward_query(Args, Query)).
+
 -record(account_type,
         {name       :: string(),
          negate     :: boolean(),

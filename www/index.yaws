@@ -11,10 +11,17 @@
 -include_lib("kernel/include/file.hrl").
 
 out(Args) ->
-    %% Cwd = filename:dirname(Args#arg.fullpath),
     Bindings = accounter:get_bindings(Args),
+    case accounter:get_var(Args, admin, "select_year") of
+        "select_year"  -> select_year(Args, Bindings);
+        "create_assoc" -> create_assoc(Args, Bindings);
+        "create_year"  -> create_year(Args, Bindings)
+    end.
+
+select_year(Args, Bindings) ->
     AssociationL = ?BINDING("ASSOCIATION", Bindings),
     ChooseYearL = ?BINDING("CHOOSE_YEAR", Bindings),
+    BooksDir = accounter:get_books_dir(Args),
     [
      {ssi, "header.ssi", "%%", Bindings},
      {ssi, "buttons.ssi", "%%", Bindings},
@@ -22,27 +29,58 @@ out(Args) ->
      {ehtml,
       [
        {h2,[], [AssociationL, " - ", ChooseYearL]},
-       gen_index(Args)
+       gen_dir_index(Args, Bindings, "WORK_DIR", BooksDir)
       ]},
      {ssi, "footer.ssi","%%", Bindings}
     ].
 
-gen_index(Args) ->
-    BooksDir = accounter:get_books_dir(Args),
+create_assoc(Args, Bindings) ->
+    [gen_dir_index(Args, Bindings, Label, Dir) || {Label,Dir} <- dirs(Args)].
+
+create_year(Args, Bindings) ->
+    [gen_dir_index(Args, Bindings, Label, Dir) || {Label,Dir} <- dirs(Args)].
+
+dirs(Args) ->
+    TemplatesDir = accounter:get_templates_dir(),
+    ExamplesDir = accounter:get_examples_dir(),
+    WorkDir = accounter:get_work_dir(Args),
+    if
+        ExamplesDir =:= WorkDir ->
+            [
+             {"WORK_DIR", WorkDir},
+             {"TEMPLATES", TemplatesDir}             
+            ];
+        true ->
+            [
+             {"WORK_DIR", WorkDir},
+             {"EXAMPLES", ExamplesDir},
+             {"TEMPLATES", TemplatesDir}
+            ]
+    end.
+
+gen_dir_index(Args, Bindings, Label, BooksDir) ->
+%%    LabelL = ?BINDING(Label, Bindings),
     case accounter:list_books(BooksDir) of
         {ok, SortedNames} ->
             Rev = fun(X, Y) -> X > Y end,
             [
+%%              {h3, [], {pre_html, LabelL}},
              {ul, [],
               [
                [
-                {li,[], [{p,[],
-                          [{a, [{href, ["reports.yaws?name=", Name]}], Name}]}]}
-               ] || Name <- SortedNames]
+                {li,[],
+                 [{p,[],
+                   [{a,
+                     [{href,
+                       ["reports.yaws", ?FQ(Args, [{"name", Name}])]}],
+                     Name}]}]}
+               ] || Name <- SortedNames
+              ]
              }
             ];
         {error, Reason} ->
             [
+%%             {h3, [], {pre_html, LabelL}},
              {p, [], ["Yaws server error: ", $\",
                       file:format_error(Reason), $\"]},
              {p, [], ["books_dir=", BooksDir]}

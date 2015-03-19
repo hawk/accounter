@@ -99,7 +99,7 @@ gen_errors(Args, Bindings, Book) when is_record(Book, book) ->
 id_to_href(Args, item, Id) ->
     id_to_href(Args, voucher, Id);
 id_to_href(Args, voucher, Id) ->
-    {a, [{href, [accounter_html:forward_query(Args, [{"voucher_id", ?TO_HTML(Id)}])]}],
+    {a, [{href, [?FQ(Args, [{"voucher_id", ?TO_HTML(Id)}])]}],
      {pre_html, ?TO_HTML(Id)}};
 id_to_href(_Args, _Type, Id) ->
     {a, [], {pre_html, ?TO_HTML(Id)}}.
@@ -117,10 +117,10 @@ gen_register(Args, Bindings, Book)  when is_record(Book, book) ->
        {form,
         [{method, post},
          {name, register},
-         {action, 
+         {action,
           [
            "/register_post.yaws",
-           accounter_html:forward_query(Args, [{"name", Book#book.name}])
+           ?FQ(Args, [{"name", Book#book.name}])
           ]
          },
          {autocomplete, "off"}],

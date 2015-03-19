@@ -35,16 +35,19 @@ gen_reports(Args, Bindings, Book, Name, Report) when Report =:= "all" ->
          gen_errors(Bindings, Book),
          {br},
          {hr},
-         gen_summary(Bindings, Book, balance, #account.in_balance, BalanceReportL),
+         gen_summary(Bindings, Book, balance,
+                     #account.in_balance, BalanceReportL),
          {br},
          {hr},
-         gen_summary(Bindings, Book, result, #account.in_result, ResultReportL),
+         gen_summary(Bindings, Book, result,
+                     #account.in_result, ResultReportL),
          {br},
          {hr},
          gen_budget(Bindings, Book),
          {br},
          {hr},
-         gen_summary(Bindings, Book, comparison, #account.in_result, ComparisonL),
+         gen_summary(Bindings, Book, comparison,
+                     #account.in_result, ComparisonL),
          {br},
          {hr},
          gen_journal(Args, Bindings, Book),
@@ -70,13 +73,16 @@ gen_reports(Args, Bindings, Book, Name, Report) ->
           "errors" ->
               gen_errors(Bindings, Book);
           "balance" ->
-              gen_summary(Bindings, Book, balance, #account.in_balance, BalanceReportL);
+              gen_summary(Bindings, Book, balance,
+                          #account.in_balance, BalanceReportL);
           "result" ->
-              gen_summary(Bindings, Book, result, #account.in_result, ResultReportL);
+              gen_summary(Bindings, Book, result,
+                          #account.in_result, ResultReportL);
           "budget" ->
               gen_budget(Bindings, Book);
           "comparison" ->
-              gen_summary(Bindings, Book, comparison, #account.in_result, ComparisonL);
+              gen_summary(Bindings, Book, comparison,
+                          #account.in_result, ComparisonL);
           "journal" ->
               gen_journal(Args, Bindings, Book);
           "ledge" ->
@@ -127,18 +133,26 @@ gen_print(Args, Bindings, Book) ->
     JournalL = ?BINDING("JOURNAL", Bindings),
     LedgerL = ?BINDING("LEDGER", Bindings),
     PrintoutL = ?BINDING("PRINTOUT", Bindings),
+    R = "reports.yaws",
     [
      {h3,[], {a, [{name, "print"}],
               {pre_html, [AssociationL, " ", Book#book.name, " - ", PrintoutL]}}},
      {ul, [],
       [
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "errors"}])]}], {pre_html, ?TO_HTML(ErrorMsgsL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "balance"}])]}], {pre_html, ?TO_HTML(BalanceReportL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "result"}])]}], {pre_html, ?TO_HTML(ResultReportL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "budget"}])]}], {pre_html, ?TO_HTML(BudgetL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "comparison"}])]}], {pre_html, ?TO_HTML(ComparisonL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "journal"}])]}], {pre_html, ?TO_HTML(JournalL)}}]}]},
-       {li,[], [{p,[], [{a, [{href, ["reports.yaws", accounter_html:forward_query(Args, [{"report", "ledge"}])]}], {pre_html, ?TO_HTML(LedgerL)}}]}]}
+       {li,[], [{p,[], [{a, [{href, [R, ?FQ(Args, [{"report", "errors"}])]}],
+                         {pre_html, ?TO_HTML(ErrorMsgsL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, [R, ?FQ(Args, [{"report", "balance"}])]}],
+                         {pre_html, ?TO_HTML(BalanceReportL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, [R, ?FQ(Args, [{"report", "result"}])]}],
+                         {pre_html, ?TO_HTML(ResultReportL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, [R, ?FQ(Args, [{"report", "budget"}])]}],
+                         {pre_html, ?TO_HTML(BudgetL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, [R, ?FQ(Args, [{"report", "comparison"}])]}], 
+                         {pre_html, ?TO_HTML(ComparisonL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, [R, ?FQ(Args, [{"report", "journal"}])]}],
+                         {pre_html, ?TO_HTML(JournalL)}}]}]},
+       {li,[], [{p,[], [{a, [{href, [R, ?FQ(Args, [{"report", "ledge"}])]}],
+                         {pre_html, ?TO_HTML(LedgerL)}}]}]}
       ]}
     ].
 
@@ -174,12 +188,16 @@ gen_errors(Bindings, B) when is_record(B, book) ->
         [
          {tr, [{border,1}],
           [
-           {td, [], {pre_html, ?BINDING(string:to_upper(atom_to_list(Type)), Bindings)}},
+           {td, [], {pre_html, ?BINDING(string:to_upper(atom_to_list(Type)),
+                                        Bindings)}},
            {td, [], {a, [{href, "#" ++ id_to_ref(Type, Id) }],
                      {pre_html, ?TO_HTML(Id)}}},
            {td, [], {pre_html, ?TO_HTML(Val)}},
            {td, [], {pre_html, ?TO_HTML(Reason)}}
-          ]} || #error{type = Type, id = Id, value = Val, reason = Reason} <- B#book.errors]
+          ]} || #error{type = Type,
+                       id = Id,
+                       value = Val,
+                       reason = Reason} <- B#book.errors]
         ]}].
 
 id_to_ref(item, Key) ->
@@ -243,14 +261,14 @@ gen_journal_row(Args, Accounts, #voucher{id = Vid, date = Date, text = Text, ite
       [
        {th, [{align,right}],
         {a, [{name, id_to_ref(voucher, Vid)},
-             {href, ["register.yaws", accounter_html:forward_query(Args, [{id, Vid2}])]} %% OPT
+             {href, ["register.yaws", ?FQ(Args, [{id, Vid2}])]} %% OPT
             ], Vid2}},
        {th, [{align,left}], {pre_html,?TO_HTML(Date)}},
        {th, [{align,left},{colspan,5}], {pre_html,?TO_HTML(Text)}}]},
      Rows
     ].
 
- to_debit_credit(Amount) ->
+to_debit_credit(Amount) ->
     case Amount > 0 of
         true ->
             [{td, [{align,right}, {border,1}], {pre_html, ?TO_HTML({kr, Amount})}},

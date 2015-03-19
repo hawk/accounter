@@ -40,16 +40,13 @@ out(Args) ->
                 [] ->
                     {redirect_local,
                      ["/reports.yaws",
-                      accounter_html:forward_query(Args, [{"name", Name}]),
+                      ?FQ(Args, [{"name", Name}]),
                       "#voucher_", HtmlVid
                      ]};
                 _ ->
                     {redirect_local,
                      ["/register.yaws",
-                      accounter_html:forward_query(Args,
-                                                   [{"name", Name},
-                                                    {"voucher_id", HtmlVid}
-                                                   ])
+                      ?FQ(Args, [{"name", Name}, {"voucher_id", HtmlVid}])
                      ]}
             end
     end.

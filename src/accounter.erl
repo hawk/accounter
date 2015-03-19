@@ -5,7 +5,7 @@
 
 -module(accounter).
 -export([
-         get_work_dir/1,
+         get_work_dir/1, get_templates_dir/0, get_examples_dir/0,
          get_books_dir/1,get_book_name/1, get_latest_book_name/1, list_books/1,
          get_latest_voucher_id/1, get_latest_date/1,
          get_bindings/1, lookup_binding/4, get_var/3,
@@ -30,6 +30,18 @@ get_books_dir(Args) ->
 get_config_file(Args) ->
     filename:join([get_work_dir(Args), "accounter.xml"]).
 
+get_app_dir() ->
+    {file, BeamPath} = code:is_loaded(?MODULE),
+    filename:dirname(filename:dirname(BeamPath)).
+
+get_templates_dir() ->
+    AppDir = get_app_dir(),
+    filename:join([AppDir, "templates"]).
+
+get_examples_dir() ->
+    AppDir = get_app_dir(),
+    filename:join([AppDir, "examples"]).
+
 get_bindings(Args) ->
     ConfigFile = get_config_file(Args),
     Config = accounter_xml:parse_simple(ConfigFile),
@@ -37,9 +49,8 @@ get_bindings(Args) ->
     Accounter = ?XML_LOOKUP(accounter, [Config], FileContext),
     AccounterContext = [accounter | FileContext],
     Template = ?XML_LOOKUP(template, Accounter, FileContext),
-    AppDir = app_dir(),
-    BindingsFile = filename:join([AppDir, "templates",
-                                  Template, "bindings.xml"]),
+    TemplatesDir = get_templates_dir(),
+    BindingsFile = filename:join([TemplatesDir, Template, "bindings.xml"]),
     Bindings0 = [accounter_xml:parse_simple(BindingsFile)],
     TemplateContext = [BindingsFile, file],
     Bindings = ?XML_LOOKUP(bindings, Bindings0, TemplateContext),
@@ -47,10 +58,6 @@ get_bindings(Args) ->
     User = [format_binding(B, BindingsContext, ?FILE, ?LINE) || B <- Bindings],
     Builtin = gen_bindings(Args, Accounter, AccounterContext),
     Builtin ++ User.
-
-app_dir() ->
-    {file, BeamPath} = code:is_loaded(?MODULE),
-    filename:dirname(filename:dirname(BeamPath)).
 
 gen_bindings(Args, Accounter, AccounterContext) ->
     Latest = get_latest_book_name(Args),
