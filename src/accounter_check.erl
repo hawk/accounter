@@ -5,8 +5,8 @@
 
 -module(accounter_check).
 -export([
-         amend_book/6,
-         amend_items/5
+         amend_book/1,
+         amend_book/6
         ]).
 
 -include("../include/accounter.hrl").
@@ -14,6 +14,13 @@
 %%-------------------------------------------------------------------
 %% Amend
 %%-------------------------------------------------------------------
+
+amend_book(#book{name = Name, types = Types, accounts = Accounts,
+                 vouchers = Vouchers}) ->
+    Budgets = [#budget{account_id = Id, account_balance = Budget} ||
+                  #account{id = Id, budget = Budget} <- Accounts],
+    Items = lists:flatten([I || #voucher{items = I} <- Vouchers]),
+    amend_book(Name, Types, Accounts, Budgets, Vouchers, Items).
 
 amend_book(Name, Types, Accounts, Budgets, Vouchers, Items) ->
     {Accounts2, Errors}  = amend_accounts(Accounts, []),
@@ -148,7 +155,7 @@ amend_items(Accounts, Vouchers, Items, Errors) ->
     {Vouchers3, Items3, Error3} =
         add_missing_item_vouchers(Items2, Vouchers, [], Errors2),
     {Vouchers4, Errors4} =
-        do_amend_voucher_items(Accounts2, Vouchers3, Items3, [], Error3),
+        amend_voucher_items(Accounts2, Vouchers3, Items3, [], Error3),
     {Accounts2, Vouchers4, Errors4}.
 
 add_missing_item_accounts([I = #item{voucher_id = Vid,
@@ -204,10 +211,10 @@ add_missing_item_vouchers([E | Tail], Accounts, Items, Errors)
 add_missing_item_vouchers([], Vouchers, Items, Errors) ->
     {Vouchers, lists:reverse(Items), Errors}.
 
-do_amend_voucher_items(Accounts, [V | Tail], Items, Vouchers, Errors)
-  when V#voucher.items =:=  undefined ->
+amend_voucher_items(Accounts, [V | Tail], Items, Vouchers, Errors) ->
     Vid = V#voucher.id,
-    {VoucherItems, Items2, Errors2} = amend_items(Items, Vid, [], [], Errors),
+    {VoucherItems, Items2, Errors2} =
+        do_amend_items(Items, Vid, [], [], Errors),
     V2 = V#voucher{items = VoucherItems},
     CalcSum = fun(I, Acc) -> Acc + I#item.amount end,
     case lists:foldl(CalcSum, 0, VoucherItems) of
@@ -218,10 +225,10 @@ do_amend_voucher_items(Accounts, [V | Tail], Items, Vouchers, Errors)
                        reason = "voucher should have items",
                        file   = ?FILE,
                        line   = ?LINE},
-            do_amend_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
+            amend_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
                                    [E | Errors2]);
         0 ->
-            do_amend_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
+            amend_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
                                    Errors2);
         NonZero ->
             E = #error{type = voucher,
@@ -230,32 +237,25 @@ do_amend_voucher_items(Accounts, [V | Tail], Items, Vouchers, Errors)
                        reason = "sum of all items must be 0 within the voucher",
                        file   = ?FILE,
                        line   = ?LINE},
-            do_amend_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
+            amend_voucher_items(Accounts, Tail, Items2, [V2 | Vouchers],
                                    [E | Errors2])
     end;
-do_amend_voucher_items(_Accounts, [], [], Vouchers, Errors) ->
+amend_voucher_items(_Accounts, [], [], Vouchers, Errors) ->
     {Vouchers, Errors}.
 
-amend_items([I | Tail], Vid, Match, Rem, Errors)
-  when I#item.voucher_id =:=  Vid ->
+do_amend_items([I | Tail], Vid, Match, Rem, Errors)
+  when I#item.voucher_id =:= Vid ->
     case I#item.amount of
         {0, 0} ->
-            E = #error{type = item,
-                       id = I#item.voucher_id,
-                       value = 0,
-                       reason = "bad debit and credit of account " ++
-                           integer_to_list(I#item.account_id) ++
-                           ", only one should be 0,00 kr",
-                       file   = ?FILE,
-                       line   = ?LINE},
-            amend_items(Tail, Vid, [I#item{amount = 0} | Match], Rem,
-                        [E | Errors]);
-        {Ore, 0} ->
-            amend_items(Tail, Vid, [I#item{amount = Ore} | Match], Rem,
-                        Errors);
-        {0, Ore} ->
-            amend_items(Tail, Vid, [I#item{amount = -Ore} | Match], Rem,
-                        Errors);
+            E = only_one_error(I, ?FILE, ?LINE),
+            do_amend_items(Tail, Vid, [I#item{amount = 0} | Match], Rem,
+                           [E | Errors]);
+        {Debit, 0} ->
+            do_amend_items(Tail, Vid, [I#item{amount = Debit} | Match], Rem,
+                           Errors);
+        {0, Credit} ->
+            do_amend_items(Tail, Vid, [I#item{amount = -Credit} | Match], Rem,
+                           Errors);
         {Debit, Credit} ->
             E = #error{type = item,
                        id = I#item.voucher_id,
@@ -265,18 +265,34 @@ amend_items([I | Tail], Vid, Match, Rem, Errors)
                            ", one must be 0,00 kr",
                        file   = ?FILE,
                        line   = ?LINE},
-            amend_items(Tail, Vid, [I#item{amount = Debit - Credit} | Match],
-                        Rem, [E | Errors])
-        end;
-amend_items([I | Tail], Vid, Match, Rem, Errors) ->
-    amend_items(Tail, Vid, Match, [I | Rem], Errors);
-amend_items([], _Vid, Match, Rem, Errors) ->
+            do_amend_items(Tail, Vid, [I#item{amount = Debit - Credit} | Match],
+                           Rem, [E | Errors]);
+        0 ->
+            E = only_one_error(I, ?FILE, ?LINE),
+            do_amend_items(Tail, Vid, [I | Match], Rem, [E | Errors]);
+        Amount when is_integer(Amount) ->
+            do_amend_items(Tail, Vid, [I | Match], Rem, Errors)
+    end;
+do_amend_items([I | Tail], Vid, Match, Rem, Errors) ->
+    do_amend_items(Tail, Vid, Match, [I | Rem], Errors);
+do_amend_items([], _Vid, Match, Rem, Errors) ->
     {lists:reverse(Match), lists:reverse(Rem), Errors}.
+
+only_one_error(I, File, Line) ->
+    #error{type = item,
+           id = I#item.voucher_id,
+           value = 0,
+           reason = "bad debit and credit of account " ++
+               integer_to_list(I#item.account_id) ++
+               ", only one should be 0,00 kr",
+           file   = File,
+           line   = Line}.
 
 amend_budgets(Accounts, Budgets, Errors) ->
     Pos = #budget.account_id,
-    {Budgets2, Errors2} = check_duplicates(Budgets, Pos, Pos, budget,
-                                          "duplicate budget id", error, Errors),
+    {Budgets2, Errors2} =
+        check_duplicates(Budgets, Pos, Pos, budget,
+                         "duplicate budget id", error, Errors),
     {Accounts3, Errors3} = do_amend_budgets(Budgets2, Accounts, Errors2),
     {Accounts3, Errors3}.
 
@@ -284,20 +300,20 @@ do_amend_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
                  Accounts, Errors) ->
     case [A || A <- Accounts, A#account.id =:=  Aid] of
         [] ->
-            E = #error{type = budget,
-                       id = Aid,
-                       value = Aid,
+            E = #error{type   = budget,
+                       id     = Aid,
+                       value  = Aid,
                        reason = "reference to missing account",
                        file   = ?FILE,
                        line   = ?LINE},
-            A = #account{id                 = Aid,
-                         name               = lists:concat(["BUDGET_ERROR_",Aid]),
+            A = #account{id         = Aid,
+                         name       = lists:concat(["BUDGET_ERROR_",Aid]),
                          type       = "ERROR",
                          desc       = "",
                          old_id     = Aid,
                          in_result  = false,
                          in_balance = false,
-                         budget             = Bal},
+                         budget     = Bal},
             do_amend_budgets(Tail, [A | Accounts], [E | Errors]);
         [A] ->
             Accounts2 = [X || X <- Accounts, X#account.id =/= Aid],
@@ -306,9 +322,9 @@ do_amend_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
                 true ->
                     do_amend_budgets(Tail, [A2 | Accounts2], Errors);
                 false ->
-                    E = #error{type = budget,
-                               id = Aid,
-                               value = Aid,
+                    E = #error{type   = budget,
+                               id     = Aid,
+                               value  = Aid,
                                reason = "reference to a account that"
                                         " not is included in result",
                                file   = ?FILE,

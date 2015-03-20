@@ -11,8 +11,7 @@
          import_book/2,
          to_tokens/2,
          tokens_to_vouchers/3, tokens_to_items/3,
-         encode_book/4,
-         export_book/5, export_voucher/4
+         encode_book/4, export_book/5, export_voucher/4
         ]).
 
 -include("../include/accounter.hrl").
@@ -112,25 +111,23 @@ decode_book(CsvStyle, Name,
 
 %%-------------------------------------------------------------------
 
-to_tokens(IoList, Delim) ->
-    Lines = string:tokens(IoList, "\n\r"),
-    Tokens = [to_tokens(Line, Delim, [])
-              || Line <- Lines],
-    Tokens.
+to_tokens(Chars, Delim) ->
+    Lines = string:tokens(Chars, "\n\r"),
+    [to_tokens(Line, Delim, []) || Line <- Lines].
 
 to_tokens([], _Delim, Tokens) ->
     lists:reverse(Tokens);
-to_tokens([DoubleQuote = $" | IoList], Delim, Tokens) ->
+to_tokens([DoubleQuote = $" | Chars], Delim, Tokens) ->
     Pred = fun(Char) -> Char =/= DoubleQuote end,
-    case lists:splitwith(Pred, IoList) of
+    case lists:splitwith(Pred, Chars) of
         {Token, [DoubleQuote | Tail]} ->
             trim_tokens(skip_spaces(Tail), Delim, [Token | Tokens]);
         {Token, []} ->
             trim_tokens([], Delim, [Token | Tokens])
         end;
-to_tokens(IoList, Delim, Tokens) ->
+to_tokens(Chars, Delim, Tokens) ->
     Pred = fun(Char) -> Char =/= Delim end,
-    {Token, Tail} = lists:splitwith(Pred, IoList),
+    {Token, Tail} = lists:splitwith(Pred, Chars),
     trim_tokens(Tail, Delim, [Token | Tokens]).
 
 trim_tokens(Tail, Delim, Tokens) ->
@@ -148,8 +145,36 @@ trim_tokens(Tail, Delim, Tokens) ->
             to_tokens([], Delim, Tokens)
     end.
 
-skip_spaces(IoList) ->
-    string:strip(IoList, left, $ ).
+skip_spaces(Chars) ->
+    string:strip(Chars, left, $ ).
+
+tokens_to_types(old_style = CsvStyle,
+                [["Konto_typ", "Konto_negativ"] | Tail],  Types) ->
+    tokens_to_types(CsvStyle, Tail, Types);
+tokens_to_types(new_style = CsvStyle,
+                [["AcountType", "Negate", "InResult", "InBalance"] | Tail],
+                Types) ->
+    tokens_to_types(CsvStyle, Tail, Types);
+tokens_to_types(old_style = CsvStyle, [[Id, Balance] | Tail],  Types) ->
+    X = (catch #account_type{name   = to_string(type, Id, Id),
+                             negate = to_bool(type, Id, Balance)}),
+    tokens_to_types(CsvStyle, Tail, [X | Types]);
+tokens_to_types(new_style = CsvStyle,
+                [[Id, Balance, InResult, InBalance] | Tail],
+                Types) ->
+    X = (catch #account_type{name   = to_string(type, Id, Id),
+                             negate = to_bool(type, Id, Balance),
+                             in_result =
+                                 to_bool(account, Id, InResult),
+                             in_balance =
+                                 to_bool(account, Id, InBalance)}),
+    tokens_to_types(CsvStyle, Tail, [X | Types]);
+
+tokens_to_types(_CsvStyle, [H = [Id | _] | _Tail], _) ->
+    Arity = integer_to_list(length(H)),
+    bail_out(type, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
+tokens_to_types(_CsvStyle, [], Types) ->
+    lists:reverse(Types).
 
 tokens_to_accounts(old_style = CsvStyle,
                    [["Konto_Nr", "Konto_namn", "Konto_Typ", "K_beskrivning",
@@ -202,26 +227,21 @@ tokens_to_accounts(new_style, [H = [Id | _] | _Tail], _,  _) ->
 tokens_to_accounts(_CsvStyle, [], _, Accounts) ->
     lists:reverse(Accounts).
 
-tokens_to_items(old_style = CsvStyle,
-                [["Verifikations_ID", "Konto_Nr", "Debet", "Kredit",
-                  "Kommentar"] | Tail], Items) ->
-    tokens_to_items(CsvStyle, Tail, Items);
-tokens_to_items(new_style = CsvStyle,
-                [["VoucherId", "AccountId", "Debit", "Credit",
-                  "Remark"] | Tail], Items) ->
-    tokens_to_items(CsvStyle, Tail, Items);
-tokens_to_items(CsvStyle, [[Vid, Aid, Debit, Credit, Remark] | Tail], Items) ->
-    I = #item{voucher_id = to_int(item, Vid, Vid),
-              account_id = to_int(item, Vid, Aid),
-              amount     = {to_ore(item, Vid, Debit),
-                            to_ore(item, Vid, Credit)},
-              remark     = to_string(item, Vid, Remark)},
-    tokens_to_items(CsvStyle, Tail, [I | Items]);
-tokens_to_items(_CsvStyle, [H = [Id | _] | _Tail], _) ->
+tokens_to_budgets(old_style = CsvStyle,
+                  [["Konto_Nr", "Konto_saldo"] | Tail],  Budgets) ->
+    tokens_to_budgets(CsvStyle, Tail, Budgets);
+tokens_to_budgets(new_style = CsvStyle,
+                  [["AccountId", "AccountBalance"] | Tail],  Budgets) ->
+    tokens_to_budgets(CsvStyle, Tail, Budgets);
+tokens_to_budgets(CsvStyle, [[Id, Balance] | Tail],  Budgets) ->
+    X = (catch #budget{account_id      = to_int(budget, Id, Id),
+                       account_balance = to_ore(budget, Id, Balance)}),
+    tokens_to_budgets(CsvStyle, Tail, [X | Budgets]);
+tokens_to_budgets(_CsvStyle, [H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
-    bail_out(item, Id, Arity, "bad arity, 5 expected", ?FILE, ?LINE);
-tokens_to_items(_CsvStyle, [], Items) ->
-    lists:reverse(Items).
+    bail_out(budget, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
+tokens_to_budgets(_CsvStyle, [], Budgets) ->
+    lists:reverse(Budgets).
 
 tokens_to_vouchers(old_style = CsvStyle,
                    [["Verifikations_ID", "V_Datum", "V_Text"] | Tail],
@@ -242,49 +262,26 @@ tokens_to_vouchers(_CsvStyle, [H = [Id | _] | _Tail], _) ->
 tokens_to_vouchers(_CsvStyle, [], Vouchers) ->
     lists:reverse(Vouchers).
 
-tokens_to_budgets(old_style = CsvStyle,
-                  [["Konto_Nr", "Konto_saldo"] | Tail],  Budgets) ->
-    tokens_to_budgets(CsvStyle, Tail, Budgets);
-tokens_to_budgets(new_style = CsvStyle,
-                  [["AccountId", "AccountBalance"] | Tail],  Budgets) ->
-    tokens_to_budgets(CsvStyle, Tail, Budgets);
-tokens_to_budgets(CsvStyle, [[Id, Balance] | Tail],  Budgets) ->
-    X = (catch #budget{account_id      = to_int(budget, Id, Id),
-                       account_balance = to_ore(budget, Id, Balance)}),
-    tokens_to_budgets(CsvStyle, Tail, [X | Budgets]);
-tokens_to_budgets(_CsvStyle, [H = [Id | _] | _Tail], _) ->
+tokens_to_items(old_style = CsvStyle,
+                [["Verifikations_ID", "Konto_Nr", "Debet", "Kredit",
+                  "Kommentar"] | Tail], Items) ->
+    tokens_to_items(CsvStyle, Tail, Items);
+tokens_to_items(new_style = CsvStyle,
+                [["VoucherId", "AccountId", "Debit", "Credit",
+                  "Remark"] | Tail], Items) ->
+    tokens_to_items(CsvStyle, Tail, Items);
+tokens_to_items(CsvStyle, [[Vid, Aid, Debit, Credit, Remark] | Tail], Items) ->
+    I = #item{voucher_id = to_int(item, Vid, Vid),
+              account_id = to_int(item, Vid, Aid),
+              amount     = {to_ore(item, Vid, Debit),
+                            to_ore(item, Vid, Credit)},
+              remark     = to_string(item, Vid, Remark)},
+    tokens_to_items(CsvStyle, Tail, [I | Items]);
+tokens_to_items(_CsvStyle, [H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
-    bail_out(budget, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
-tokens_to_budgets(_CsvStyle, [], Budgets) ->
-    lists:reverse(Budgets).
-
-tokens_to_types(old_style = CsvStyle,
-                [["Konto_typ", "Konto_negativ"] | Tail],  Types) ->
-    tokens_to_types(CsvStyle, Tail, Types);
-tokens_to_types(new_style = CsvStyle,
-                [["AcountType", "Negate", "InResult", "InBalance"] | Tail],
-                Types) ->
-    tokens_to_types(CsvStyle, Tail, Types);
-tokens_to_types(old_style = CsvStyle, [[Id, Balance] | Tail],  Types) ->
-    X = (catch #account_type{name   = to_string(type, Id, Id),
-                             negate = to_bool(type, Id, Balance)}),
-    tokens_to_types(CsvStyle, Tail, [X | Types]);
-tokens_to_types(new_style = CsvStyle,
-                [[Id, Balance, InResult, InBalance] | Tail],
-                Types) ->
-    X = (catch #account_type{name   = to_string(type, Id, Id),
-                             negate = to_bool(type, Id, Balance),
-                             in_result =
-                                 to_bool(account, Id, InResult),
-                             in_balance =
-                                 to_bool(account, Id, InBalance)}),
-    tokens_to_types(CsvStyle, Tail, [X | Types]);
-
-tokens_to_types(_CsvStyle, [H = [Id | _] | _Tail], _) ->
-    Arity = integer_to_list(length(H)),
-    bail_out(type, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
-tokens_to_types(_CsvStyle, [], Types) ->
-    lists:reverse(Types).
+    bail_out(item, Id, Arity, "bad arity, 5 expected", ?FILE, ?LINE);
+tokens_to_items(_CsvStyle, [], Items) ->
+    lists:reverse(Items).
 
 to_int(Type, Id, IoList) ->
     case catch list_to_integer(IoList) of
@@ -366,11 +363,9 @@ bail_out(Type, Id, IoList, Reason, File, Line) ->
 %% Export
 %%-------------------------------------------------------------------
 
-export_voucher(BooksDir, Book, V, Delim)
-  when is_record(V, voucher), is_list(Delim) ->
+export_voucher(BooksDir, Book, V, Delim) when is_record(V, voucher) ->
     Dir = filename:join([BooksDir, Book#book.name]),
     CsvStyle = csv_style(BooksDir),
-    io:format("CsvStyle: ~p\n", [CsvStyle]),
     case accounter:get_latest_voucher_id(Book) + 1 of
         NextFreeId when NextFreeId =:= V#voucher.id ->
             append_voucher(CsvStyle, Dir, V, Delim);
@@ -388,7 +383,6 @@ append_voucher(CsvStyle, Dir, V, Delim) ->
 
 replace_voucher(CsvStyle, Dir, B, V, Delim) ->
     Vouchers = lists:keystore(V#voucher.id, #voucher.id, B#book.vouchers, V),
-    io:format("HDR: ~p\n", [vouchers_header(CsvStyle, Delim)]),
     VoucherIoList =
         [vouchers_header(CsvStyle, Delim),
          encode_vouchers(CsvStyle, Vouchers, Delim)],

@@ -49,7 +49,7 @@ forward_query(Args, NewQuery) ->
     OldQuery = [{Key, Val} || {Key, Val} <- yaws_api:parse_query(Args)],
     TmpUniqQuery = uniq_query(NewQuery, []),
     UniqQuery = uniq_query(OldQuery, TmpUniqQuery),
-    to_query(UniqQuery).
+    to_query("?", UniqQuery).
 
 uniq_query([{Key, _Val} = KeyVal| Query], Acc) ->
     case lists:keymember(Key, 1, Acc) of
@@ -59,17 +59,11 @@ uniq_query([{Key, _Val} = KeyVal| Query], Acc) ->
 uniq_query([], Acc) ->
     lists:reverse(Acc).
 
-to_query([]) ->
-    [];
-to_query(Query) ->
-    ["?", to_query2(Query)].
-
-to_query2([{Key, Val} | Tail]) when is_atom(Key) ->
-    to_query2([{atom_to_list(Key), Val} | Tail]);
-to_query2([{Key, Val} | Tail]) when is_list(Key), is_list(Val) ->
-    case Tail of
-        [] ->
-            [Key, "=", Val];
-        _ ->
-            [Key, "=", Val, "&", to_query2(Tail)]
-    end.
+to_query(Prefix, [{_Key, ""} | Tail]) ->
+    to_query(Prefix, Tail);
+to_query(Prefix, [{Key, Val} | Tail]) when is_atom(Key) ->
+    to_query(Prefix, [{atom_to_list(Key), Val} | Tail]);
+to_query(Prefix, [{Key, Val} | Tail]) ->
+    [Prefix, Key, "=", Val, to_query("&", Tail)];
+to_query(_Prefix, []) ->
+    [].
