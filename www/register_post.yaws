@@ -14,14 +14,14 @@ out(Args) ->
     Name = accounter:get_latest_book_name(Args),
     Book = accounter_csv:import_book(Args, Name),
     BooksDir = accounter:get_books_dir(Args),
-    Dir = filename:join([BooksDir, Name]),
     Delim = ";",
     V = parse_voucher_post(Args, Delim),
     Vid = V#voucher.id,
     HtmlVid = ?TO_HTML(Vid),
-    NextId = accounter:get_latest_voucher_id(Book) + 1,
-    ErrIds = [ErrId || #error{type = voucher, id = ErrId} <- Book#book.errors],
-    ValidIds = [NextId | ErrIds],
+    NextFreeId = accounter:get_latest_voucher_id(Book) + 1,
+    ErrIds = [ErrId || #error{type = Type, id = ErrId} <- Book#book.errors,
+                       (Type =:= voucher orelse Type =:= item)],
+    ValidIds = [NextFreeId | ErrIds],
     WantedName = accounter:get_book_name(Args),
     IsValid = lists:member(Vid, ValidIds),
     if
@@ -35,7 +35,7 @@ out(Args) ->
                           "Invalid voucher id",
                           ?FILE, ?LINE]});
         true ->
-            accounter_csv:export_voucher(Dir, V, Delim),
+            accounter_csv:export_voucher(BooksDir, Book, V, Delim),
             case ErrIds of
                 [] ->
                     {redirect_local,

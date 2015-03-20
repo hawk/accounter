@@ -20,7 +20,7 @@ out(Args) ->
     CsvStyle = old_style,
     {TypeChars, AccountChars, BudgetChars,
      VoucherChars, ItemChars, ErrorChars} =
-        accounter_csv:book_to_chars(CsvStyle, Bindings, Book, Delim),
+        accounter_csv:encode_book(CsvStyle, Bindings, Book, Delim),
     F = fun(FileType) -> accounter_csv:filename(CsvStyle, FileType) end,
     [
      {ssi, "header.ssi", "%%", Bindings},

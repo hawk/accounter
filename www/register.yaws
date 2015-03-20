@@ -29,10 +29,12 @@ out(Args) ->
 
 %% Update erroneous voucher or create new voucher
 ensure_voucher(Args, Book) when is_record(Book, book) ->
+    NextFreeId = accounter:get_latest_voucher_id(Book) + 1,
+    LatestDate = accounter:get_latest_date(Book),
     DefaultV =
         fun() ->
-                #voucher{id = accounter:get_latest_voucher_id(Book) + 1,
-                         date = accounter:get_latest_date(Book),
+                #voucher{id = NextFreeId,
+                         date = LatestDate,
                          text = "",
                          items = []}
         end,
@@ -40,15 +42,16 @@ ensure_voucher(Args, Book) when is_record(Book, book) ->
         case yaws_api:queryvar(Args, voucher_id) of
             {ok, Id} ->
                 Vid = list_to_integer(Id), %% BUGBUG: May crash
-                case [V || E <- Book#book.errors,
-                           V <- Book#book.vouchers,
-                           E#error.type =:= voucher, 
-                           E#error.id =:= Vid,
-                           V#voucher.id =:= Vid] of
-                    [] ->
-                        DefaultV();
-                    Vs ->
-                        lists:last(Vs)
+                BadVs =
+                    [V || E <- Book#book.errors,
+                          V <- Book#book.vouchers,
+                          (E#error.type =:= voucher orelse
+                           E#error.type =:= item),
+                          E#error.id =:= Vid,
+                          V#voucher.id =:= Vid],
+                case BadVs of
+                    [] -> DefaultV();
+                    _  -> lists:last(BadVs)
                 end;
             _ ->
                 DefaultV()
