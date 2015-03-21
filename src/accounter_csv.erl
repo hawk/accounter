@@ -103,8 +103,7 @@ decode_book(CsvStyle, Name,
     Accounts = tokens_to_accounts(CsvStyle,
                                   to_tokens(AccountIoList, Delim), Types, []),
     Budgets = tokens_to_budgets(CsvStyle,
-                                Accounts,
-                                to_tokens(BudgetIoList, Delim), []),
+                                to_tokens(BudgetIoList, Delim), Accounts,[]),
     Vouchers = tokens_to_vouchers(CsvStyle,
                                   to_tokens(VoucherIoList, Delim), []),
     Items = tokens_to_items(CsvStyle,
@@ -231,14 +230,14 @@ tokens_to_accounts(_CsvStyle, [], _, Accounts) ->
     lists:reverse(Accounts).
 
 tokens_to_budgets(new_style,
-                  Accounts,
                   [],
+                  Accounts,
                   []) ->
     [#budget{account_id = Id, account_balance = Budget} ||
         #account{id = Id, budget = Budget} <- Accounts];
 tokens_to_budgets(old_style = CsvStyle,
-                 Accounts,
                   [["Konto_Nr", "Konto_saldo"] | Tail],
+                 Accounts,
                   Budgets) ->
     tokens_to_budgets(CsvStyle, Tail, Accounts, Budgets);
 tokens_to_budgets(old_style = CsvStyle,
