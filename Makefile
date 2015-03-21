@@ -15,10 +15,14 @@ all: Makefile lib/yaws/done
 	  fi ;                        \
 	done
 
-lib/yaws/done:
-	(cd lib && git clone https://github.com/klacke/yaws.git)
-	(cd lib/yaws && autoreconf -fi && ./configure && make)
-	touch lib/yaws/done
+# lib/yaws/done:
+# 	(cd lib && git clone https://github.com/klacke/yaws.git)
+# 	(cd lib/yaws && autoreconf -fi && ./configure && make)
+# 	touch lib/yaws/done
+
+lib/yaws: /opt/local/lib/yaws
+	cd lib
+	ln -s  /opt/local/lib/yaws
 
 config_clean:
 	$(MAKE) clean
