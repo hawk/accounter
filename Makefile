@@ -6,7 +6,7 @@
 include ./include.mk
 SUBDIRS = src
 
-all: Makefile lib/yaws/done
+all: Makefile lib/yaws
 	@for d in $(SUBDIRS); do         \
 	  if test ! -d $$d ; then        \
 	    echo "=== Skipping subdir $$d" ; \
