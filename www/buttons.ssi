@@ -2,12 +2,6 @@
   <tr>
     <td>
       <table bgcolor="#B6b6a5" border="2" cellpadding="5" cellspacing="0" height="100" width="95%">
-        <tr border="2">
-          <td> <font size ="3"> <a href="http://www.plusgirot.se">Plusgirot.se</a> </font> </td>
-          <td> <font size ="3"> <a href="http://www.forspaddling.com">Forspaddling.com</a> </font> </td>
-          <td> <font size ="3"> <a href="http://www.kkss.se/Forsguiden/forsguiden.html">Forsguiden</a> </font> </td>
-          <td> <font size ="3"> <a href="http://www.kanot.com">Kanot.com</a> </font> </td>
-        </tr>
         <tr border="1">
           <td> <font size ="3"> <a href="index.yaws">%%CHOOSE_YEAR%%</a> </font> </td>
           <td> <font size ="3"> <a href="vouchers_edit.yaws">%%EDIT_VOUCHERS%% (%%BOOK_LATEST%%)</a> </font> </td>
