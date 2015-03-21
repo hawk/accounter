@@ -4,6 +4,7 @@
   <binding><replace>ACCOUNT</replace><with>Konto</with></binding>
   <binding><replace>ACCOUNTS</replace><with>Konton</with></binding>
   <binding><replace>ACCOUNT_TYPES</replace><with>Kontotyper</with></binding>
+  <binding><replace>ADD_ACCOUNT</replace><with>Lägg till konto</with></binding>
   <binding><replace>BALANCE</replace><with>Saldo</with></binding>
   <binding><replace>BALANCE_REPORT</replace><with>Balansrapport</with></binding>
   <binding><replace>BUDGET</replace><with>Budget</with></binding>
@@ -14,6 +15,8 @@
   <binding><replace>DEBIT</replace><with>Debet</with></binding>
   <binding><replace>DESCRIPTION</replace><with>Beskrivning</with></binding>
   <binding><replace>DIFFERENCE</replace><with>Diff</with></binding>
+  <binding><replace>EDIT_ACCOUNTS</replace><with>Ändra konton</with></binding>
+  <binding><replace>EDIT_VOUCHERS</replace><with>Registrera</with></binding>
   <binding><replace>ERROR_MSGS</replace><with>Felmeddelanden</with></binding>
   <binding><replace>ERRORS</replace><with>Fel värde</with></binding>
   <binding><replace>FILE</replace><with>Fil</with></binding>
@@ -26,7 +29,6 @@
   <binding><replace>NOTE</replace><with>Beskrivning</with></binding>
   <binding><replace>NUMBER_OF</replace><with>Antal</with></binding>
   <binding><replace>PRINTOUT</replace><with>Utskrift</with></binding>
-  <binding><replace>REGISTER</replace><with>Registrera</with></binding>
   <binding><replace>REPORTS</replace><with>Rapporter</with></binding>
   <binding><replace>RESULT</replace><with>Resultat</with></binding>
   <binding><replace>RESULT_REPORT</replace><with>Resultatrapport</with></binding>

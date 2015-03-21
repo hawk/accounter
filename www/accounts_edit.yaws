@@ -22,6 +22,7 @@ out(Args) ->
       [
        {h2,[], [{pre_html, [AssociationL, " ", Name]}]},
        gen_errors(Args, Bindings, Book),
+       gen_new(Args, Bindings, Book),
        gen_edit(Args, Bindings, Book),
        {ssi, "footer.ssi","%%", Bindings}
       ]
@@ -65,16 +66,14 @@ gen_errors(Args, Bindings, Book) when is_record(Book, book) ->
       ]}
     ].
 
-id_to_href(Args, item, Id) ->
-    id_to_href(Args, voucher, Id);
-id_to_href(Args, voucher, Id) ->
-    {a, [{href, [?FQ(Args, [{"voucher_id", ?TO_HTML(Id)}])]}],
+id_to_href(Args, account, Id) ->
+    {a, [{href, [?FQ(Args, [{"account_id", ?TO_HTML(Id)}])]}],
      {pre_html, ?TO_HTML(Id)}};
 id_to_href(_Args, _Type, Id) ->
     {a, [], {pre_html, ?TO_HTML(Id)}}.
 
-gen_edit(Args, Bindings, Book)  when is_record(Book, book) ->
-    RegisterL = ?BINDING("EDIT_VOUCHERS", Bindings),
+gen_new(Args, Bindings, Book)  when is_record(Book, book) ->
+    RegisterL = ?BINDING("ADD_ACCOUNT", Bindings),
     #voucher{id = Vid, date = Date, text = Text, items = Items} =
         ensure_voucher(Args, Book),
     HtmlVid = ?TO_HTML(Vid),
@@ -88,7 +87,7 @@ gen_edit(Args, Bindings, Book)  when is_record(Book, book) ->
          {name, edit},
          {action,
           [
-           "/vouchers_commit.yaws",
+           "/accounts_commit.yaws",
            ?FQ(Args, [{"name", Book#book.name}])
           ]
          },
@@ -101,42 +100,33 @@ gen_edit(Args, Bindings, Book)  when is_record(Book, book) ->
       ]}
     ].
 
-%% Update erroneous voucher or create new voucher
-ensure_voucher(Args, Book) when is_record(Book, book) ->
-    NextFreeId = accounter:get_latest_voucher_id(Book) + 1,
-    LatestDate = accounter:get_latest_date(Book),
-    DefaultV =
-        fun() ->
-                #voucher{id = NextFreeId,
-                         date = LatestDate,
-                         text = "",
-                         items = []}
-        end,
-    V =
-        case yaws_api:queryvar(Args, voucher_id) of
-            {ok, Id} ->
-                Vid = list_to_integer(Id), %% BUGBUG: May crash
-                BadVs =
-                    [V || E <- Book#book.errors,
-                          V <- Book#book.vouchers,
-                          (E#error.type =:= voucher orelse
-                           E#error.type =:= item),
-                          E#error.id =:= Vid,
-                          V#voucher.id =:= Vid],
-                case BadVs of
-                    [] -> DefaultV();
-                    _  -> lists:last(BadVs)
-                end;
-            _ ->
-                DefaultV()
-        end,
-    DefaultAccount = 1020, %% BUGBUG
-    I = #item{account_id = DefaultAccount, amount = 0, remark = ""},
-    Items = V#voucher.items ++ lists:duplicate(20, I),
-    V#voucher{items = Items}.
+gen_edit(Args, Bindings, Book)  when is_record(Book, book) ->
+    RegisterL = ?BINDING("EDIT_ACCOUNTS", Bindings),
+    HtmlVid = ?TO_HTML(Vid),
+    [
+     {h3,[],
+      [
+       {pre_html, [RegisterL]},
+       {p, [], []},
+       {form,
+        [{method, post},
+         {name, edit},
+         {action,
+          [
+           "/accounts_commit.yaws",
+           ?FQ(Args, [{"name", Book#book.name}])
+          ]
+         },
+         {autocomplete, "off"}],
+        [
+         gen_accounts(Bindings, Book)
+        ]}
+      ]}
+    ].
 
-gen_voucher(Bindings, Book, HtmlVid, Date, Text) ->
-    VoucherL = ?BINDING("VOUCHER", Bindings),
+gen_accounts(Bindings, Book, HtmlVid, Date, Text) ->
+    AccountL = ?BINDING("ACCOUNT", Bindings),
+    AccountL = ?BINDING("NAME", Bindings),
     DateL = "YYYY-MM-DD",
     SummaryL = ?BINDING("SUMMARY", Bindings),
     SaveL = ?BINDING("SAVE", Bindings),

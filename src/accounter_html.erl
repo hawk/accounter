@@ -6,7 +6,6 @@
 -module(accounter_html).
 -export([
          to_html/1, forward_query/2
-
         ]).
 
 to_html({kr, Int}) when is_integer(Int) ->
@@ -25,8 +24,9 @@ to_html(String) when is_list(String) ->
     to_html_string(String);
 to_html(Atom) when is_atom(Atom) ->
     case Atom of
-        true    -> "1";
-        false   -> "0"
+        true      -> "1";
+        false     -> "0";
+        undefined -> ""
     end.
 
 to_html_string([195, Char | Tail]) ->

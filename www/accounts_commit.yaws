@@ -1,0 +1,119 @@
+<html>
+
+<erl>
+
+%% Copyright 2015 Hakan Mattsson
+%%
+%% See the file "LICENSE" for information on usage and redistribution
+%% of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+-include_lib("accounter/include/accounter.hrl").
+
+out(Args) ->
+    Cwd  = filename:dirname(Args#arg.fullpath),
+    Name = accounter:get_latest_book_name(Args),
+    OldBook = accounter_csv:import_book(Args, Name),
+    BooksDir = accounter:get_books_dir(Args),
+    Delim = accounter_csv:get_field_delim(Args),
+    V = parse_voucher_post(Args, Delim),
+    Vid = V#voucher.id,
+    HtmlVid = ?TO_HTML(Vid),
+    NextFreeId = accounter:get_latest_voucher_id(OldBook) + 1,
+    ErrFilter = fun(#error{type = Type, id = ErrId}) ->
+                        case Type of
+                            voucher -> {true, ErrId};
+                            item    -> {true, ErrId};
+                            _       -> false
+                        end
+                end,
+    OldErrIds = lists:zf(ErrFilter, OldBook#book.errors),
+    ValidIds = [NextFreeId | OldErrIds],
+    WantedName = accounter:get_book_name(Args),
+    IsValid = lists:member(Vid, ValidIds),
+    if
+        WantedName =/= Name ->
+            %% BUGBUG: Type = book/year
+            exit({error, [voucher, Vid, WantedName,
+                          "Invalid year." ++ Name ++ " expected.",
+                          ?FILE, ?LINE]});
+        not IsValid ->
+            exit({error, [voucher, Vid, Vid,
+                          "Invalid voucher id",
+                          ?FILE, ?LINE]});
+        true ->
+            NewBook = check_book(OldBook, V),
+            NewV = lists:keyfind(Vid, #voucher.id, NewBook#book.vouchers),
+            accounter_csv:export_voucher(BooksDir, OldBook, NewV, Delim),
+            NewErrIds = lists:zf(ErrFilter, NewBook#book.errors),
+            case NewErrIds of
+                [] ->
+                    {redirect_local,
+                     ["/reports.yaws",
+                      ?FQ(Args, [{"name", Name}, {"voucher_id", ""}]),
+                      "#voucher_", HtmlVid
+                     ]};
+                _ ->
+                    {redirect_local,
+                     ["/accounts_edit.yaws",
+                      ?FQ(Args, [{"name", Name}, {"voucher_id", HtmlVid}])
+                     ]}
+            end
+    end.
+
+parse_voucher_post(Args, Delim) ->
+    [{"voucher", Vid}, {"date", Date}, {"text", Text} | ItemsPost] =
+        yaws_api:parse_post(Args),
+    BooksDir = accounter:get_books_dir(Args),
+    CsvStyle = accounter_csv:csv_style(BooksDir),
+    Chars = lists:concat([Vid, [Delim], Date, [Delim], Text]),
+    Tokens = accounter_csv:to_tokens(Chars, Delim),
+    case catch accounter_csv:tokens_to_vouchers(CsvStyle, Tokens, []) of
+        [#voucher{} = V] ->
+            Items = parse_items(CsvStyle, ItemsPost, Vid, Delim),
+            V#voucher{items = Items};
+        [#error{type   = Type,
+                id     = Id,
+                value  = Val,
+                reason = Reason,
+                file   = File,
+                line   = Line}] ->
+            exit({error, [Type, Id, Val, Reason, File, Line]})
+    end.
+
+parse_items(CsvStyle,
+            [{"remark", ""}, {"debit", _}, {"credit", _},
+             {"account", _} | Items], Vid, Delim) ->
+    parse_items(CsvStyle, Items, Vid, Delim);
+parse_items(CsvStyle,
+            [{"remark", undefined}, {"debit", _}, {"credit", _},
+             {"account", _} | Items], Vid, Delim) ->
+    parse_items(CsvStyle, Items, Vid, Delim);
+parse_items(CsvStyle,
+            [{"remark", Remark}, {"debit", Debit}, {"credit", Credit},
+             {"account", Account} | Items], Vid, Delim) ->
+    ItemTokens = lists:concat([Vid, [Delim], Account, [Delim], Debit,
+                               [Delim], Credit, [Delim], Remark]),
+    Tokens = accounter_csv:to_tokens(ItemTokens, Delim),
+    case accounter_csv:tokens_to_items(CsvStyle, Tokens, []) of
+        [#item{} = I] ->
+            [I | parse_items(CsvStyle, Items, Vid, Delim)];
+        [#error{type   = Type,
+                id     = Id,
+                value  = Val,
+                reason = Reason,
+                file   = File,
+                line   = Line}] ->
+            exit({error, [Type, Id, Val, Reason, File, Line]})
+    end;
+parse_items(_CsvStyle, [], _Vid, _Delim) ->
+    [].
+
+check_book(OldBook, V) ->
+    Vouchers = lists:keystore(V#voucher.id, #voucher.id,
+                              OldBook#book.vouchers, V),
+    NewBook = OldBook#book{vouchers = Vouchers},
+    accounter_check:amend_book(NewBook).
+
+</erl>
+
+</html>

@@ -22,8 +22,13 @@ amend_book(#book{name = Name, types = Types, accounts = Accounts,
     Items = lists:flatten([I || #voucher{items = I} <- Vouchers]),
     amend_book(Name, Types, Accounts, Budgets, Vouchers, Items).
 
-amend_book(Name, Types, Accounts, Budgets, Vouchers, Items) ->
-    {Accounts2, Errors}  = amend_accounts(Accounts, []),
+amend_book(Name, Types0, Accounts0, Budgets0, Vouchers0, Items0) ->
+    {Types, ET} = separate_errors(Types0, []),
+    {Accounts, EA} = separate_errors(Accounts0, ET),
+    {Budgets, EB} = separate_errors(Budgets0, EA),
+    {Vouchers, EV} = separate_errors(Vouchers0, EB),
+    {Items, EI} = separate_errors(Items0, EV),
+    {Accounts2, Errors}  = amend_accounts(Accounts, EI),
     {Vouchers2, Errors2} = amend_vouchers(Vouchers, Errors),
     {Accounts3, Vouchers3, Errors3} =
         amend_items(Accounts2, Vouchers2, Items, Errors2),
@@ -33,6 +38,10 @@ amend_book(Name, Types, Accounts, Budgets, Vouchers, Items) ->
           accounts = lists:keysort(#account.id, Accounts4),
           vouchers = lists:keysort(#voucher.id, Vouchers3),
           errors   = lists:sort(Errors4)}.
+
+separate_errors(Tuples, Errors) ->
+    {[T || T <- Tuples, not is_record(T, error)],
+     Errors ++ [T || T <- Tuples, is_record(T, error)]}.
 
 amend_accounts(Accounts, Errors) ->
     Errors2 = check_missing(Accounts, #account.id, #account.name,
@@ -168,7 +177,7 @@ add_missing_item_accounts([I = #item{voucher_id = Vid,
             E = #error{type = item,
                        id     = Vid,
                        value  = Aid,
-                       reason = "reference to missing account",
+                       reason = "reference to a missing account",
                        file   = ?FILE,
                        line   = ?LINE},
             A = #account{id      = Aid,
@@ -196,7 +205,7 @@ add_missing_item_vouchers([I = #item{voucher_id = Vid} | Tail],
             E = #error{type  = item,
                        id    = Vid,
                        value = Vid,
-                       reason = "reference to missing voucher",
+                       reason = "reference to a missing voucher",
                        file   = ?FILE,
                        line   = ?LINE},
             V = #voucher{id   = Vid,
@@ -303,7 +312,7 @@ do_amend_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
             E = #error{type   = budget,
                        id     = Aid,
                        value  = Aid,
-                       reason = "reference to missing account",
+                       reason = "reference to a missing account",
                        file   = ?FILE,
                        line   = ?LINE},
             A = #account{id         = Aid,
@@ -318,14 +327,16 @@ do_amend_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
         [A] ->
             Accounts2 = [X || X <- Accounts, X#account.id =/= Aid],
             A2 = A#account{budget = Bal},
-            case A2#account.in_result of
-                true ->
+            if
+                A2#account.in_result ->
                     do_amend_budgets(Tail, [A2 | Accounts2], Errors);
-                false ->
+                Bal =:= undefined ->
+                    do_amend_budgets(Tail, [A2 | Accounts2], Errors);
+                true ->
                     E = #error{type   = budget,
                                id     = Aid,
                                value  = Aid,
-                               reason = "reference to a account that"
+                               reason = "reference to an account that"
                                         " not is included in result",
                                file   = ?FILE,
                                line   = ?LINE},

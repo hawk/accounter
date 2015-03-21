@@ -4,6 +4,7 @@
   <binding><replace>ACCOUNT</replace><with>Account</with></binding>
   <binding><replace>ACCOUNTS</replace><with>Accounts</with></binding>
   <binding><replace>ACCOUNT_TYPES</replace><with>Account types</with></binding>
+  <binding><replace>ADD_ACCOUNT</replace><with>Add account</with></binding>
   <binding><replace>BALANCE</replace><with>Balance</with></binding>
   <binding><replace>BALANCE_REPORT</replace><with>Balance report</with></binding>
   <binding><replace>BUDGET</replace><with>Budget</with></binding>
@@ -14,6 +15,8 @@
   <binding><replace>DEBIT</replace><with>Debit</with></binding>
   <binding><replace>DESCRIPTION</replace><with>Description</with></binding>
   <binding><replace>DIFFERENCE</replace><with>Diff</with></binding>
+  <binding><replace>EDIT_ACCOUNTS</replace><with>Edit accounts</with></binding>
+  <binding><replace>EDIT_VOUCHERS</replace><with>Register voucher</with></binding>
   <binding><replace>ERROR_MSGS</replace><with>Error messages</with></binding>
   <binding><replace>ERRORS</replace><with>Invalid value</with></binding>
   <binding><replace>FILE</replace><with>File</with></binding>
@@ -26,14 +29,13 @@
   <binding><replace>NOTE</replace><with>Description</with></binding>
   <binding><replace>NUMBER_OF</replace><with>Count</with></binding>
   <binding><replace>PRINTOUT</replace><with>Printout</with></binding>
-  <binding><replace>REGISTER</replace><with>Register</with></binding>
   <binding><replace>REPORTS</replace><with>Reports</with></binding>
   <binding><replace>RESULT</replace><with>Result</with></binding>
   <binding><replace>RESULT_REPORT</replace><with>Result report</with></binding>
   <binding><replace>SAVE</replace><with>Save</with></binding>
   <binding><replace>SUM</replace><with>Sum</with></binding>
   <binding><replace>SUMMARY</replace><with>Summary</with></binding>
-  <binding><replace>TABLES</replace><with>Tablesdeller</with></binding>
+  <binding><replace>TABLES</replace><with>Tables</with></binding>
   <binding><replace>TYPE</replace><with>Type</with></binding>
   <binding><replace>TOTAL</replace><with>Total</with></binding>
   <binding><replace>UPDATE</replace><with>Correct defects</with></binding>

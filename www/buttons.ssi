@@ -10,14 +10,14 @@
         </tr>
         <tr border="1">
           <td> <font size ="3"> <a href="index.yaws">%%CHOOSE_YEAR%%</a> </font> </td>
-          <td> <font size ="3"> <a href="vouchers_edit.yaws">%%REGISTER%% (%%BOOK_LATEST%%)</a> </font> </td>
+          <td> <font size ="3"> <a href="vouchers_edit.yaws">%%EDIT_VOUCHERS%% (%%BOOK_LATEST%%)</a> </font> </td>
           <td> <font size ="3"> <a href="reports.yaws%%BOOK_REF%%">%%REPORTS%% (%%BOOK_NAME%%)</a> </font> </td>
           <td> <font size ="3"> &nbsp; </font> </td>
        </tr>
        <tr border="1">
           <td> <font size ="3"> <a href="tables.yaws%%BOOK_REF%%">%%TABLES%% (%%BOOK_NAME%%)</a> </font> </td>
-          <td> <font size ="3"> <a href="budget.yaws%%BOOK_REF%%">(%%BUDGET%%)</a> </font> </td>
-          <td> <font size ="3"> <a href="accounts.yaws%%BOOK_REF%%">(%%ACCOUNTS%%)</a> </font> </td>
+          <td> <font size ="3"> <a href="accounts_edit.yaws">%%EDIT_ACCOUNTS%% (%%BOOK_LATEST%%)</a> </font> </td>
+          <td> <font size ="3"> &nbsp; </font> </td>
           <td> <font size ="3"> &nbsp; </font> </td>
        </tr>
      </table>

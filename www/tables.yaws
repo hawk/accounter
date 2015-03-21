@@ -17,7 +17,9 @@ out(Args) ->
     AssociationL = ?BINDING("ASSOCIATION", Bindings),
     TablesL = ?BINDING("TABLES", Bindings),
     Delim = accounter_csv:get_field_delim(Args),
-    CsvStyle = old_style,
+    BooksDir = accounter:get_books_dir(Args),
+    YearDir = filename:join([BooksDir, Name]),
+    CsvStyle = accounter_csv:csv_style(YearDir),
     {TypeChars, AccountChars, BudgetChars,
      VoucherChars, ItemChars, ErrorChars} =
         accounter_csv:encode_book(CsvStyle, Bindings, Book, Delim),
