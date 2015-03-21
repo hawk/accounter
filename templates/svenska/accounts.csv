@@ -37,10 +37,10 @@
 2014;"Uttag förmåner";"EGET KAPITAL OCH SKULDER";;;;
 2017;"Egna insättningar";"EGET KAPITAL OCH SKULDER";;;;
 2019;"Årets resultat, delägare 1";"EGET KAPITAL OCH SKULDER";;;;
-2020;"Eget kapital, delägare 2;"B10";"EGET KAPITAL OCH SKULDER";;;;
+2020;"Eget kapital, delägare 2";"EGET KAPITAL OCH SKULDER";;;;
 2030;"Eget kapital, delägare 3";"EGET KAPITAL OCH SKULDER";;;;
 2040;"Eget kapital, delägare 4";"EGET KAPITAL OCH SKULDER";;;;
-2050;"Avsättning till expansionsfond";"EGET KAPITAL OCH SKULDER";
+2050;"Avsättning till expansionsfond";"EGET KAPITAL OCH SKULDER";;;;
 2060;"Ersättningsfond";"EGET KAPITAL OCH SKULDER";;;;
 2070;"Insatsemissioner, avbetalningsplan på skog, skogskonto, upphovsmannakonto";"EGET KAPITAL OCH SKULDER";;;;
 2080;"Periodiseringsfonder";"EGET KAPITAL OCH SKULDER";;;;
@@ -52,7 +52,7 @@
 2086;"Periodiseringsfond 2014";"EGET KAPITAL OCH SKULDER";;;;
 2087;"Periodiseringsfond 2015";"EGET KAPITAL OCH SKULDER";;;;
 2088;"Periodiseringsfond 2016";"EGET KAPITAL OCH SKULDER";;;;
-2089;"Periodiseringsfond 2017";"EGET KAPITAL OCH SKULDER";
+2089;"Periodiseringsfond 2017";"EGET KAPITAL OCH SKULDER";;;;
 2090;"Utjämningskonto upplysningar 1-4";"EGET KAPITAL OCH SKULDER";;;;
 2330;"Checkräkningskredit";"EGET KAPITAL OCH SKULDER";;;;
 2350;"Skulder till kreditinstitut";"EGET KAPITAL OCH SKULDER";;;;
@@ -116,7 +116,7 @@
 5700;"Frakter och transporter";"UTGIFTER/KOSTNADER";;;;
 5800;"Resekostnader";"UTGIFTER/KOSTNADER";;;;
 5900;"Reklam och PR";"UTGIFTER/KOSTNADER";;;;
-6000;"Övriga försäljningskostnader";"UTGIFTER/KOSTNADER";
+6000;"Övriga försäljningskostnader";"UTGIFTER/KOSTNADER";;;;
 6070;"Representation";"UTGIFTER/KOSTNADER";;;;
 6071;"Representation, avdragsgill";"UTGIFTER/KOSTNADER";;;;
 6072;"Representation, ej avdragsgill";"UTGIFTER/KOSTNADER";;;;
@@ -134,7 +134,7 @@
 7500;"Sociala och andra avgifter enligt lag och avtal";"UTGIFTER/KOSTNADER";;;;
 7600;"Övriga personalkostnader";"UTGIFTER/KOSTNADER";;;;
 7631;"Personalrepresentation, avdragsgill";"UTGIFTER/KOSTNADER";;;;
-7632;"Personalrepresentation, ej avdragsgill";"UTGIFTER/KOSTNADER";
+7632;"Personalrepresentation, ej avdragsgill";"UTGIFTER/KOSTNADER";;;;
 7700;"Nedskrivningar";"UTGIFTER/KOSTNADER";;;;
 7810;"Avskrivningar på immateriella anläggningstillgångar";"UTGIFTER/KOSTNADER";;;;
 7820;"Avskrivningar på byggnader och markanläggningar";"UTGIFTER/KOSTNADER";;;;
@@ -146,5 +146,5 @@
 8330;"Valutakursdifferenser på fordringar och placeringar";"INKOMSTER/INTÄKTER";;;;
 8410;"Räntekostnader för skulder";"UTGIFTER/KOSTNADER";;;;
 8430;"Valutakursdifferenser på skulder";"UTGIFTER/KOSTNADER";;;;
-8990;"Resultat R11";"UTGIFTER/KOSTNADER";"UTGIFTER/KOSTNADER";;;;
+8990;"Resultat";"UTGIFTER/KOSTNADER";;;;
 8999;"Årets resultat";"UTGIFTER/KOSTNADER";;;;
