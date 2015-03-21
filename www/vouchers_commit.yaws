@@ -24,7 +24,7 @@ out(Args) ->
                             voucher -> {true, ErrId};
                             item    -> {true, ErrId};
                             _       -> false
-                        end                        
+                        end
                 end,
     OldErrIds = lists:zf(ErrFilter, OldBook#book.errors),
     ValidIds = [NextFreeId | OldErrIds],
@@ -54,7 +54,7 @@ out(Args) ->
                      ]};
                 _ ->
                     {redirect_local,
-                     ["/register.yaws",
+                     ["/vouchers_edit.yaws",
                       ?FQ(Args, [{"name", Name}, {"voucher_id", HtmlVid}])
                      ]}
             end

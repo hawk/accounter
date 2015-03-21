@@ -261,7 +261,7 @@ gen_journal_row(Args, Accounts, #voucher{id = Vid, date = Date, text = Text, ite
       [
        {th, [{align,right}],
         {a, [{name, id_to_ref(voucher, Vid)},
-             {href, ["register.yaws", ?FQ(Args, [{id, Vid2}])]} %% OPT
+             {href, ["vouchers_edit.yaws", ?FQ(Args, [{id, Vid2}])]} %% OPT
             ], Vid2}},
        {th, [{align,left}], {pre_html,?TO_HTML(Date)}},
        {th, [{align,left},{colspan,5}], {pre_html,?TO_HTML(Text)}}]},
