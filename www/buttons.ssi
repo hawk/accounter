@@ -3,16 +3,16 @@
     <td>
       <table bgcolor="#B6b6a5" border="2" cellpadding="5" cellspacing="0" height="100" width="95%">
         <tr border="1">
-          <td> <font size ="3"> <a href="index.yaws">%%CHOOSE_YEAR%%</a> </font> </td>
-          <td> <font size ="3"> <a href="vouchers_edit.yaws">%%EDIT_VOUCHERS%% (%%BOOK_LATEST%%)</a> </font> </td>
-          <td> <font size ="3"> <a href="reports.yaws%%BOOK_REF%%">%%REPORTS%% (%%BOOK_NAME%%)</a> </font> </td>
-          <td> <font size ="3"> &nbsp; </font> </td>
+          <td width="25%"><font size="3"><a href="index.yaws">%%CHOOSE_YEAR%%</a></font></td>
+          <td width="25%"><font size="3"><a href="vouchers_edit.yaws">%%EDIT_VOUCHERS%% (%%BOOK_LATEST%%)</a></font></td>
+          <td width="25%"><font size="3"><a href="reports.yaws%%BOOK_REF%%">%%REPORTS%% (%%BOOK_NAME%%)</a></font></td>
+          <td width="25%"><font size="3">&nbsp;</font></td>
        </tr>
        <tr border="1">
-          <td> <font size ="3"> <a href="tables.yaws%%BOOK_REF%%">%%TABLES%% (%%BOOK_NAME%%)</a> </font> </td>
-          <td> <font size ="3"> <a href="accounts_edit.yaws">%%EDIT_ACCOUNTS%% (%%BOOK_LATEST%%)</a> </font> </td>
-          <td> <font size ="3"> &nbsp; </font> </td>
-          <td> <font size ="3"> &nbsp; </font> </td>
+          <td width="25%"><font size="3"><a href="tables.yaws%%BOOK_REF%%">%%TABLES%% (%%BOOK_NAME%%)</a></font></td>
+          <td width="25%"><font size="3"><a href="accounts_edit.yaws">%%EDIT_ACCOUNTS%% (%%BOOK_LATEST%%)</a></font></td>
+          <td width="25%"><font size="3">&nbsp;</font></td>
+          <td width="25%"><font size="3">&nbsp;</font></td>
        </tr>
      </table>
     </td>

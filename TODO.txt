@@ -1,3 +1,16 @@
+build/install
+  bin/accounter --make (lib/yaws, lib/jquery, src -> ebin)
+  bin/accounter --clean
+
+account_type replace InRes+InBal with ResOrBal
+account      skip InRes+InBal
+
+mode : read | write | admin
+read : reports
+reports : full | standalone | printout
+write : read | register
+admin : write | accounts | account_types | create_year | create_assoc
+
 index
   ?admin=select_year (default)
   ?admin=create_assoc

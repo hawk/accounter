@@ -150,7 +150,7 @@ skip_spaces(Chars) ->
     string:strip(Chars, left, $ ).
 
 tokens_to_types(old_style = CsvStyle,
-                [["Konto_typ", "Konto_negativ"] | Tail],  Types) ->
+                [["Konto_type", "Konto_negativ"] | Tail],  Types) ->
     tokens_to_types(CsvStyle, Tail, Types);
 tokens_to_types(new_style = CsvStyle,
                 [["AccountType", "Negate", "InResult", "InBalance"] | Tail],

@@ -21,8 +21,7 @@ all: Makefile lib/yaws
 # 	touch lib/yaws/done
 
 lib/yaws: /opt/local/lib/yaws
-	cd lib
-	ln -s  /opt/local/lib/yaws
+	ln -s  /opt/local/lib/yaws lib/yaws
 
 config_clean:
 	$(MAKE) clean

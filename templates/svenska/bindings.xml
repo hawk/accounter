@@ -21,10 +21,13 @@
   <binding><replace>ERRORS</replace><with>Fel värde</with></binding>
   <binding><replace>FILE</replace><with>Fil</with></binding>
   <binding><replace>ID</replace><with>Id</with></binding>
+  <binding><replace>IN_BALANCE</replace><with>Saldo</with></binding>
+  <binding><replace>IN_RESULT</replace><with>Resultat</with></binding>
   <binding><replace>ITEM</replace><with>Händelse</with></binding>
   <binding><replace>ITEMS</replace><with>Händelser</with></binding>
   <binding><replace>JOURNAL</replace><with>Grundbok</with></binding>
   <binding><replace>LEDGER</replace><with>Huvudbok</with></binding>
+  <binding><replace>NAME</replace><with>Namn</with></binding>
   <binding><replace>NO_ERROR_MSGS</replace><with>Inga felmeddelanden</with></binding>
   <binding><replace>NOTE</replace><with>Beskrivning</with></binding>
   <binding><replace>NUMBER_OF</replace><with>Antal</with></binding>

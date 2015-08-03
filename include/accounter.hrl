@@ -23,8 +23,8 @@
         {id         :: non_neg_integer(),
          old_id     :: non_neg_integer(),
          name       :: string(),
-         type       :: string(),
          desc       :: string(),
+         type       :: string(),
          budget     :: integer(),
          in_result  :: boolean(),
          in_balance :: boolean()}).

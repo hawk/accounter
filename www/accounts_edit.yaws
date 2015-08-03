@@ -22,7 +22,6 @@ out(Args) ->
       [
        {h2,[], [{pre_html, [AssociationL, " ", Name]}]},
        gen_errors(Args, Bindings, Book),
-       gen_new(Args, Bindings, Book),
        gen_edit(Args, Bindings, Book),
        {ssi, "footer.ssi","%%", Bindings}
       ]
@@ -72,37 +71,8 @@ id_to_href(Args, account, Id) ->
 id_to_href(_Args, _Type, Id) ->
     {a, [], {pre_html, ?TO_HTML(Id)}}.
 
-gen_new(Args, Bindings, Book)  when is_record(Book, book) ->
-    RegisterL = ?BINDING("ADD_ACCOUNT", Bindings),
-    #voucher{id = Vid, date = Date, text = Text, items = Items} =
-        ensure_voucher(Args, Book),
-    HtmlVid = ?TO_HTML(Vid),
-    [
-     {h3,[],
-      [
-       {pre_html, [RegisterL]},
-       {p, [], []},
-       {form,
-        [{method, post},
-         {name, edit},
-         {action,
-          [
-           "/accounts_commit.yaws",
-           ?FQ(Args, [{"name", Book#book.name}])
-          ]
-         },
-         {autocomplete, "off"}],
-        [
-         gen_voucher(Bindings, Book, HtmlVid, Date, Text),
-         {p, [], []},
-         gen_items(Bindings, Book, Items)
-        ]}
-      ]}
-    ].
-
 gen_edit(Args, Bindings, Book)  when is_record(Book, book) ->
     RegisterL = ?BINDING("EDIT_ACCOUNTS", Bindings),
-    HtmlVid = ?TO_HTML(Vid),
     [
      {h3,[],
       [
@@ -118,17 +88,19 @@ gen_edit(Args, Bindings, Book)  when is_record(Book, book) ->
           ]
          },
          {autocomplete, "off"}],
-        [
-         gen_accounts(Bindings, Book)
-        ]}
+        gen_accounts(Bindings, Book)
+       }
       ]}
     ].
 
-gen_accounts(Bindings, Book, HtmlVid, Date, Text) ->
-    AccountL = ?BINDING("ACCOUNT", Bindings),
-    AccountL = ?BINDING("NAME", Bindings),
-    DateL = "YYYY-MM-DD",
-    SummaryL = ?BINDING("SUMMARY", Bindings),
+gen_accounts(Bindings, Book) ->
+    IdL = ?BINDING("ID", Bindings),
+    NameL = ?BINDING("NAME", Bindings),
+    DescL = ?BINDING("DESCRIPTION", Bindings),
+    TypeL = ?BINDING("TYPE", Bindings),
+    BudgetL = ?BINDING("BUDGET", Bindings),
+    InResultL = ?BINDING("IN_RESULT", Bindings),
+    InBalanceL = ?BINDING("IN_BALANCE", Bindings),
     SaveL = ?BINDING("SAVE", Bindings),
     [
      {table, [{border, 0}],
@@ -139,114 +111,71 @@ gen_accounts(Bindings, Book, HtmlVid, Date, Text) ->
            [
             {tr, [{border, 0}],
              [
-              {th, [{align, left}], {pre_html, ?TO_HTML(VoucherL)}},
-              {th, [{align, left}], {pre_html, ?TO_HTML(DateL)}},
-              {th, [{align, left}], {pre_html, ?TO_HTML(SummaryL)}}
+              {th, [{align, left}], {pre_html, ?TO_HTML(IdL)}},
+              {th, [{align, left}], {pre_html, ?TO_HTML(NameL)}},
+              {th, [{align, left}], {pre_html, ?TO_HTML(DescL)}},
+              {th, [{align, left}], {pre_html, ?TO_HTML(TypeL)}},
+              {th, [{align, left}], {pre_html, ?TO_HTML(BudgetL)}},
+              {th, [{align, left}], {pre_html, ?TO_HTML(InResultL)}},
+              {th, [{align, left}], {pre_html, ?TO_HTML(InBalanceL)}}
              ]},
-            {tr, [],
-             [
-              {td,
-               [{align, left}],
-               {input, [{name, voucher},
-                        {type, text},
-                        {size, "50"},
-                        {value, ?TO_HTML(HtmlVid)}]}},
-              {td,
-               [{align, left}],
-               {input, [{name, date},
-                        {type, text},
-                        {size, "10"},
-                        {id, datepicker},
-                        {value, ?TO_HTML(Date)}]}},
-              {td,
-               [{align, left}],
-               {input, [{name, text},
-                        {type, text},
-                        {size, "50"},
-                        {value, Text}]}}
-             ]}
+            gen_account("", "", "", "", "", "", "") |
+            [gen_account(A) || A <- Book#book.accounts]
            ]}},
          {td, [], {input, [{type, submit}, {value, ?TO_HTML(SaveL)}]}}
         ]}]}
     ].
 
-gen_items(Bindings, Book, Items) ->
-    NoteL = ?BINDING("NOTE", Bindings),
-    DebitL = ?BINDING("DEBIT", Bindings),
-    CreditL = ?BINDING("CREDIT", Bindings),
-    AccountL = ?BINDING("ACCOUNT", Bindings),
-    [
-     {table, [{border, 2}, {cellspacing, 1},{cellpadding, 1}],
-          [
-           {tr, [{border,0}],
-            [{th, [{align, left}], {pre_html, ?TO_HTML(NoteL)}},
-             {th, [{align, left}], {pre_html, ?TO_HTML(DebitL)}},
-             {th, [{align, left}], {pre_html, ?TO_HTML(CreditL)}},
-             {th, [{align, left}], {pre_html, ?TO_HTML(AccountL)}}
-            ]} |
-           [
-            {tr, [],
-             case I#item.amount > 0 of
-                 true ->
-                     [
-                      {td,
-                       [{align, left}],
-                       {input, [{name, remark},
-                                {type, text},
-                                {size, "50"},
-                                {value, ?TO_HTML(I#item.remark)}]}},
-                      {td,
-                       [{align, left}],
-                       {input, [{name, debit},
-                                {type, text},
-                                {size, "10"},
-                                {value, ?TO_HTML({kr, I#item.amount})}]}},
-                      {td,
-                       [{align, left}],
-                       {input, [{name, credit},
-                                {type, text},
-                                {size, "10"},
-                                {value,?TO_HTML({kr, 0})}]}},
-                      {td,
-                       [{align, left}],
-                       account_selection(I#item.account_id, Book)}];
-                 false ->
-                     [
-                      {td,
-                       [{align, left}],
-                       {input, [{name, remark},
-                                {type, text},
-                                {size, "50"},
-                                {value,?TO_HTML(I#item.remark)}]}},
-                      {td,
-                       [{align, left}],
-                       {input, [{name, debit},
-                                {type, text},
-                                {size," 10"},
-                                {value, ?TO_HTML({kr, 0})}]}},
-                      {td,
-                       [{align, left}],
-                       {input, [{name, credit},
-                                {type, text},
-                                {size, "10"},
-                                {value, ?TO_HTML({kr, abs(I#item.amount)})}]}},
-                      {td,
-                       [{align, left}],
-                       account_selection(I#item.account_id, Book)}]
-             end
-            } || I <- Items]
-          ]}
-    ].
+gen_account(#account{id = Id,
+                     name = Name,
+                     desc = Desc,
+                     type = Type,
+                     budget = Budget,
+                     in_result = InResult,
+                     in_balance = InBalance} = A) ->
+    gen_account(Id, Name, Desc, Type, Budget, InResult, InBalance).
 
-account_selection(SelectedAid, #book{accounts = Accounts}) ->
-    Preselected = fun(Aid) when Aid =:= SelectedAid -> [selected]; (_) -> [] end,
-    {select,
-     [{name,account}],
-     [{option,
-       [{value,?TO_HTML(A#account.id)} | Preselected(A#account.id)],
-       {pre_html, [?TO_HTML(A#account.id), ?TO_HTML(" - "),
-                   ?TO_HTML(A#account.name), ?TO_HTML(" - "),
-                   ?TO_HTML(A#account.type)]}} || A <- Accounts]}.
+gen_account(Id, Name, Desc, Type, undefined, InResult, InBalance) ->
+    gen_account(Id, Name, Desc, Type, "", InResult, InBalance);
+gen_account(Id, Name, Desc, Type, Budget, InResult, InBalance) ->
+    {tr, [],
+     [
+      {td,
+       [{align, left}],
+       {input, [{name, id},
+                {type, text},
+                {value, ?TO_HTML(Id)}]}},
+      {td,
+       [{align, left}],
+       {input, [{name, name},
+                {type, text},
+                {value, ?TO_HTML(Name)}]}},
+      {td,
+       [{align, left}],
+       {input, [{name, desc},
+                {type, text},
+                {value, Desc}]}},
+      {td,
+       [{align, left}],
+       {input, [{name, type},
+                {type, text},
+                {value, Type}]}},
+      {td,
+       [{align, left}],
+       {input, [{name, budget},
+                {type, text},
+                {value, Budget}]}},
+      {td,
+       [{align, left}],
+       {input, [{name, in_result},
+                {type, text},
+                {value, InResult}]}},
+      {td,
+       [{align, left}],
+       {input, [{name, in_balance},
+                {type, text},
+                {value, InBalance}]}}
+     ]}.
 
 </erl>
 
