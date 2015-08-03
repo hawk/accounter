@@ -185,6 +185,14 @@ gen_items(Bindings, Book, Items) ->
     DebitL = ?BINDING("DEBIT", Bindings),
     CreditL = ?BINDING("CREDIT", Bindings),
     AccountL = ?BINDING("ACCOUNT", Bindings),
+    AllItems = [I || #voucher{items = VoucherItems} <- Book#book.vouchers,
+                  I <- VoucherItems],
+    LatestAids = chop_elements(0, 10, latest_accounts(AllItems, []), []),
+    MostUsedAids = chop_elements(0, 10, most_used_accounts(AllItems, []), []),
+    Accounts0 = Book#book.accounts,
+    TopAccounts = [lists:keyfind(Aid, #account.id, Accounts0) ||
+                      Aid <- lists:usort(LatestAids ++ MostUsedAids)],
+    Accounts = TopAccounts ++ Accounts0,
     [
      {table, [{border, 2}, {cellspacing, 1},{cellpadding, 1}],
           [
@@ -219,7 +227,7 @@ gen_items(Bindings, Book, Items) ->
                                 {value,?TO_HTML({kr, 0})}]}},
                       {td,
                        [{align, left}],
-                       account_selection(I#item.account_id, Book)}];
+                       account_selection(I#item.account_id, Accounts)}];
                  false ->
                      [
                       {td,
@@ -242,14 +250,16 @@ gen_items(Bindings, Book, Items) ->
                                 {value, ?TO_HTML({kr, abs(I#item.amount)})}]}},
                       {td,
                        [{align, left}],
-                       account_selection(I#item.account_id, Book)}]
+                       account_selection(I#item.account_id, Accounts)}]
              end
             } || I <- Items]
           ]}
     ].
 
-account_selection(SelectedAid, #book{accounts = Accounts}) ->
-    Preselected = fun(Aid) when Aid =:= SelectedAid -> [selected]; (_) -> [] end,
+account_selection(SelectedAid, Accounts) ->
+    Preselected = fun(Aid) when Aid =:= SelectedAid ->
+                          [selected]; (_) -> []
+                  end,
     {select,
      [{name,account}],
      [{option,
@@ -258,6 +268,31 @@ account_selection(SelectedAid, #book{accounts = Accounts}) ->
                    ?TO_HTML(A#account.name), ?TO_HTML(" - "),
                    ?TO_HTML(A#account.type)]}} || A <- Accounts]}.
 
+latest_accounts([#item{account_id = Aid} | Items], Aids) ->
+    case lists:member(Aid, Aids) of
+        false -> latest_accounts(Items, [Aid|Aids]);
+        true  -> latest_accounts(Items, Aids)
+    end;
+latest_accounts([], Aids) ->
+    lists:reverse(Aids).
+            
+most_used_accounts([#item{account_id = Aid} | Items], AidCounts) ->
+    Pos = 1,
+    case lists:keyfind(Aid, Pos, AidCounts) of
+        false ->
+            most_used_accounts(Items, [{Aid, 1}| AidCounts]);
+        {Aid, Count} ->
+            Aids2 = lists:keyreplace(Aid, Pos, AidCounts, {Aid, Count+1}),
+            most_used_accounts(Items, Aids2)
+    end;
+most_used_accounts([], AidCounts) ->
+    [Aid || {Aid, _Count} <- lists:reverse(lists:keysort(2, AidCounts))].
+            
+chop_elements(N, Max, [H | T], Acc) when N < Max->
+    chop_elements(N+1, Max, T, [H | Acc]);
+chop_elements(_N, _Max, _List, Acc) ->
+    lists:reverse(Acc).
+            
 </erl>
 
 </html>
