@@ -75,8 +75,21 @@ id_to_href(_Args, _Type, Id) ->
 
 gen_edit(Args, Bindings, Book)  when is_record(Book, book) ->
     RegisterL = ?BINDING("EDIT_VOUCHERS", Bindings),
+    AllItems = [I || #voucher{items = VoucherItems} <- Book#book.vouchers,
+                  I <- VoucherItems],
+    LatestAids = chop_elements(0, 10, latest_accounts(AllItems, []), []),
+    MostUsedAids = chop_elements(0, 10, most_used_accounts(AllItems, []), []),
+    Accounts0 = Book#book.accounts,
+    TopAccounts = [lists:keyfind(Aid, #account.id, Accounts0) ||
+                      Aid <- lists:usort(LatestAids ++ MostUsedAids)],
+    Accounts = TopAccounts ++ Accounts0,
+    case {MostUsedAids, Accounts0} of
+        {[DefaultAid|_], _} -> ok;
+        {_, [DefaultAid|_]} -> ok;
+        _                   -> DefaultAid = 1020
+    end,
     #voucher{id = Vid, date = Date, text = Text, items = Items} =
-        ensure_voucher(Args, Book),
+        ensure_voucher(Args, Book, DefaultAid),
     HtmlVid = ?TO_HTML(Vid),
     [
      {h3,[],
@@ -96,13 +109,13 @@ gen_edit(Args, Bindings, Book)  when is_record(Book, book) ->
         [
          gen_voucher(Bindings, Book, HtmlVid, Date, Text),
          {p, [], []},
-         gen_items(Bindings, Book, Items)
+         gen_items(Bindings, Book, Accounts, Items)
         ]}
       ]}
     ].
 
 %% Update erroneous voucher or create new voucher
-ensure_voucher(Args, Book) when is_record(Book, book) ->
+ensure_voucher(Args, Book, DefaultAid) when is_record(Book, book) ->
     NextFreeId = accounter:get_latest_voucher_id(Book) + 1,
     LatestDate = accounter:get_latest_date(Book),
     DefaultV =
@@ -130,8 +143,7 @@ ensure_voucher(Args, Book) when is_record(Book, book) ->
             _ ->
                 DefaultV()
         end,
-    DefaultAccount = 1020, %% BUGBUG
-    I = #item{account_id = DefaultAccount, amount = 0, remark = ""},
+    I = #item{account_id = DefaultAid, amount = 0, remark = ""},
     Items = V#voucher.items ++ lists:duplicate(20, I),
     V#voucher{items = Items}.
 
@@ -180,19 +192,11 @@ gen_voucher(Bindings, Book, HtmlVid, Date, Text) ->
         ]}]}
     ].
 
-gen_items(Bindings, Book, Items) ->
+gen_items(Bindings, Book, Accounts, Items) ->
     NoteL = ?BINDING("NOTE", Bindings),
     DebitL = ?BINDING("DEBIT", Bindings),
     CreditL = ?BINDING("CREDIT", Bindings),
     AccountL = ?BINDING("ACCOUNT", Bindings),
-    AllItems = [I || #voucher{items = VoucherItems} <- Book#book.vouchers,
-                  I <- VoucherItems],
-    LatestAids = chop_elements(0, 10, latest_accounts(AllItems, []), []),
-    MostUsedAids = chop_elements(0, 10, most_used_accounts(AllItems, []), []),
-    Accounts0 = Book#book.accounts,
-    TopAccounts = [lists:keyfind(Aid, #account.id, Accounts0) ||
-                      Aid <- lists:usort(LatestAids ++ MostUsedAids)],
-    Accounts = TopAccounts ++ Accounts0,
     [
      {table, [{border, 2}, {cellspacing, 1},{cellpadding, 1}],
           [
@@ -275,7 +279,7 @@ latest_accounts([#item{account_id = Aid} | Items], Aids) ->
     end;
 latest_accounts([], Aids) ->
     lists:reverse(Aids).
-            
+
 most_used_accounts([#item{account_id = Aid} | Items], AidCounts) ->
     Pos = 1,
     case lists:keyfind(Aid, Pos, AidCounts) of
@@ -287,12 +291,12 @@ most_used_accounts([#item{account_id = Aid} | Items], AidCounts) ->
     end;
 most_used_accounts([], AidCounts) ->
     [Aid || {Aid, _Count} <- lists:reverse(lists:keysort(2, AidCounts))].
-            
+
 chop_elements(N, Max, [H | T], Acc) when N < Max->
     chop_elements(N+1, Max, T, [H | Acc]);
 chop_elements(_N, _Max, _List, Acc) ->
     lists:reverse(Acc).
-            
+
 </erl>
 
 </html>
