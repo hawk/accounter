@@ -18,7 +18,8 @@ out(Args) ->
     V = parse_voucher_post(Args, Delim),
     Vid = V#voucher.id,
     HtmlVid = ?TO_HTML(Vid),
-    NextFreeId = accounter:get_latest_voucher_id(OldBook) + 1,
+    LatestId = accounter:get_latest_voucher_id(OldBook),
+    NextFreeId = LatestId + 1,
     ErrFilter = fun(#error{type = Type, id = ErrId}) ->
                         case Type of
                             voucher -> {true, ErrId};
@@ -27,7 +28,7 @@ out(Args) ->
                         end
                 end,
     OldErrIds = lists:zf(ErrFilter, OldBook#book.errors),
-    ValidIds = [NextFreeId | OldErrIds],
+    ValidIds = [NextFreeId, LatestId | OldErrIds],
     WantedName = accounter:get_book_name(Args),
     IsValid = lists:member(Vid, ValidIds),
     if
