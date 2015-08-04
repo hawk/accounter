@@ -33,11 +33,12 @@ amend_book(Name, Types0, Accounts0, Budgets0, Vouchers0, Items0) ->
     {Accounts3, Vouchers3, Errors3} =
         amend_items(Accounts2, Vouchers2, Items, Errors2),
     {Accounts4, Errors4} = amend_budgets(Accounts3, Budgets, Errors3),
-    #book{name     = Name,
-          types    = lists:keysort(#account_type.name, Types),
-          accounts = lists:keysort(#account.id, Accounts4),
-          vouchers = lists:keysort(#voucher.id, Vouchers3),
-          errors   = lists:sort(Errors4)}.
+    Book = #book{name     = Name,
+                 types    = lists:keysort(#account_type.name, Types),
+                 accounts = lists:keysort(#account.id, Accounts4),
+                 vouchers = lists:keysort(#voucher.id, Vouchers3),
+                 errors   = lists:sort(Errors4)},
+    amend_warnings(Book).
 
 separate_errors(Tuples, Errors) ->
     {[T || T <- Tuples, not is_record(T, error)],
@@ -345,3 +346,26 @@ do_amend_budgets([#budget{account_id = Aid, account_balance = Bal} | Tail],
     end;
 do_amend_budgets([], Accounts, Errors) ->
     {Accounts, Errors}.
+
+amend_warnings(Book) ->
+    VoucherWarnings = gen_warnings(voucher, Book),
+    ItemWarnings = gen_warnings(item, Book),
+    NewErrors = lists:sort(VoucherWarnings++ItemWarnings++Book#book.errors),
+    Book#book{errors = NewErrors}.
+
+gen_warnings(voucher = Type, #book{vouchers = Vouchers}) ->
+    [#error{type = Type, id = Id, value = Text, reason = "contains ???"} ||
+        #voucher{id = Id, text = Text} <- Vouchers,
+        contains_warning(Text)];
+gen_warnings(item = Type, #book{vouchers = Vouchers}) ->
+    [#error{type = Type, id = Id, value = Remark, reason = "contains ???"} ||
+        #voucher{id = Id, items = Items} <- Vouchers,
+        #item{remark = Remark} <- Items,
+        contains_warning(Remark)].
+
+contains_warning("???"++_) ->
+    true;
+contains_warning([_|T]) ->
+    contains_warning(T);
+contains_warning([]) ->
+    false.
