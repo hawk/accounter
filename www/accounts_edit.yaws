@@ -14,6 +14,7 @@ out(Args) ->
     Book = accounter_csv:import_book(Args, Name),
     Bindings = accounter:get_bindings(Args),
     AssociationL = ?BINDING("ASSOCIATION", Bindings),
+    RegisterL = ?BINDING("EDIT_ACCOUNTS", Bindings),
     [
      {ssi, "header.ssi", "%%", Bindings},
      {ssi, "buttons.ssi", "%%", Bindings},
@@ -21,8 +22,10 @@ out(Args) ->
      {ehtml,
       [
        {h2,[], [{pre_html, [AssociationL, " ", Name]}]},
+       {h3, [], [{a, [{href, "#register"}],
+                  {pre_html, ?TO_HTML(RegisterL)}}]},
        gen_errors(Args, Bindings, Book),
-       gen_edit(Args, Bindings, Book),
+       gen_edit(Args, Bindings, RegisterL, Book),
        {ssi, "footer.ssi","%%", Bindings}
       ]
      }].
@@ -71,12 +74,11 @@ id_to_href(Args, account, Id) ->
 id_to_href(_Args, _Type, Id) ->
     {a, [], {pre_html, ?TO_HTML(Id)}}.
 
-gen_edit(Args, Bindings, Book)  when is_record(Book, book) ->
-    RegisterL = ?BINDING("EDIT_ACCOUNTS", Bindings),
+gen_edit(Args, Bindings, RegisterL, Book)  when is_record(Book, book) ->
     [
      {h3,[],
       [
-       {pre_html, [RegisterL]},
+       {a, [{name, "register"}], {pre_html, [?TO_HTML(RegisterL)]}},
        {p, [], []},
        {form,
         [{method, post},
@@ -102,6 +104,7 @@ gen_accounts(Bindings, Book) ->
     InResultL = ?BINDING("IN_RESULT", Bindings),
     InBalanceL = ?BINDING("IN_BALANCE", Bindings),
     SaveL = ?BINDING("SAVE", Bindings),
+    NewL = ?BINDING("NEW_ACCOUNT", Bindings),
     [
      {table, [{border, 0}],
       [{tr, [],
@@ -119,7 +122,7 @@ gen_accounts(Bindings, Book) ->
               {th, [{align, left}], {pre_html, ?TO_HTML(InResultL)}},
               {th, [{align, left}], {pre_html, ?TO_HTML(InBalanceL)}}
              ]},
-            gen_account("", "", "", "", "", "", "") |
+            gen_account("", NewL, "", "", "", "", "") |
             [gen_account(A) || A <- Book#book.accounts]
            ]}},
          {td, [], {input, [{type, submit}, {value, ?TO_HTML(SaveL)}]}}

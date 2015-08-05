@@ -28,6 +28,7 @@
   <binding><replace>JOURNAL</replace><with>Grundbok</with></binding>
   <binding><replace>LEDGER</replace><with>Huvudbok</with></binding>
   <binding><replace>NAME</replace><with>Namn</with></binding>
+  <binding><replace>NEW_ACCOUNT</replace><with>NYTT KONTO</with></binding>
   <binding><replace>NO_ERROR_MSGS</replace><with>Inga felmeddelanden</with></binding>
   <binding><replace>NOTE</replace><with>Beskrivning</with></binding>
   <binding><replace>NUMBER_OF</replace><with>Antal</with></binding>

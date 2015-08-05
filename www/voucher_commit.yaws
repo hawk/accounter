@@ -28,9 +28,10 @@ out(Args) ->
                         end
                 end,
     OldErrIds = lists:zf(ErrFilter, OldBook#book.errors),
-    ValidIds = [NextFreeId, LatestId | OldErrIds],
+%%  ValidIds = [NextFreeId, LatestId | OldErrIds],
+%%  IsValid = lists:member(Vid, ValidIds),
+    IsValid = (Vid > 0 andalso Vid =< NextFreeId),
     WantedName = accounter:get_book_name(Args),
-    IsValid = lists:member(Vid, ValidIds),
     if
         WantedName =/= Name ->
             %% BUGBUG: Type = book/year
@@ -55,7 +56,7 @@ out(Args) ->
                      ]};
                 _ ->
                     {redirect_local,
-                     ["/vouchers_edit.yaws",
+                     ["/voucher_edit.yaws",
                       ?FQ(Args, [{"name", Name}, {"voucher_id", HtmlVid}])
                      ]}
             end

@@ -14,6 +14,7 @@ out(Args) ->
     Book = accounter_csv:import_book(Args, Name),
     Bindings = accounter:get_bindings(Args),
     AssociationL = ?BINDING("ASSOCIATION", Bindings),
+    RegisterL = ?BINDING("EDIT_VOUCHERS", Bindings),
     [
      {ssi, "header.ssi", "%%", Bindings},
      {ssi, "buttons.ssi", "%%", Bindings},
@@ -21,8 +22,10 @@ out(Args) ->
      {ehtml,
       [
        {h2,[], [{pre_html, [AssociationL, " ", Name]}]},
+       {h3, [], [{a, [{href, "#register"}],
+                  {pre_html, ?TO_HTML(RegisterL)}}]},
        gen_errors(Args, Bindings, Book),
-       gen_edit(Args, Bindings, Book),
+       gen_edit(Args, Bindings, RegisterL, Book),
        {ssi, "footer.ssi","%%", Bindings}
       ]
      }].
@@ -73,35 +76,34 @@ id_to_href(Args, voucher, Id) ->
 id_to_href(_Args, _Type, Id) ->
     {a, [], {pre_html, ?TO_HTML(Id)}}.
 
-gen_edit(Args, Bindings, Book)  when is_record(Book, book) ->
-    RegisterL = ?BINDING("EDIT_VOUCHERS", Bindings),
+gen_edit(Args, Bindings, RegisterL, Book)  when is_record(Book, book) ->
     AllItems = [I || #voucher{items = VoucherItems} <- Book#book.vouchers,
                   I <- VoucherItems],
     LatestAids = chop_elements(0, 10, latest_accounts(AllItems, []), []),
     MostUsedAids = chop_elements(0, 10, most_used_accounts(AllItems, []), []),
     Accounts0 = Book#book.accounts,
-    TopAccounts = [lists:keyfind(Aid, #account.id, Accounts0) ||
-                      Aid <- lists:usort(LatestAids ++ MostUsedAids)],
-    Accounts = TopAccounts ++ Accounts0,
     case {MostUsedAids, Accounts0} of
         {[DefaultAid|_], _} -> ok;
         {_, [DefaultAid|_]} -> ok;
-        _                   -> DefaultAid = 1020
+        _                   -> DefaultAid = 9999
     end,
+    TopAccounts = [lists:keyfind(Aid, #account.id, Accounts0) ||
+                      Aid <- lists:usort(LatestAids ++ MostUsedAids)],
+    Accounts = TopAccounts ++ Accounts0,
     #voucher{id = Vid, date = Date, text = Text, items = Items} =
         ensure_voucher(Args, Book, DefaultAid),
     HtmlVid = ?TO_HTML(Vid),
     [
      {h3,[],
       [
-       {pre_html, [RegisterL]},
+       {a, [{name, "register"}], {pre_html, [?TO_HTML(RegisterL)]}},
        {p, [], []},
        {form,
         [{method, post},
          {name, edit},
          {action,
           [
-           "/vouchers_commit.yaws",
+           "/voucher_commit.yaws",
            ?FQ(Args, [{"name", Book#book.name}])
           ]
          },
@@ -128,17 +130,30 @@ ensure_voucher(Args, Book, DefaultAid) when is_record(Book, book) ->
     V =
         case yaws_api:queryvar(Args, voucher_id) of
             {ok, Id} ->
-                Vid = list_to_integer(Id), %% BUGBUG: May crash
-                BadVs =
-                    [V || E <- Book#book.errors,
-                          V <- Book#book.vouchers,
-                          (E#error.type =:= voucher orelse
-                           E#error.type =:= item),
-                          E#error.id =:= Vid,
-                          V#voucher.id =:= Vid],
-                case BadVs of
-                    [] -> DefaultV();
-                    _  -> lists:last(BadVs)
+                case catch list_to_integer(Id) of
+                    {'EXIT'} ->
+                        DefaultV();
+                    Vid ->
+                        if
+                            Vid > 0, Vid =< NextFreeId ->
+                                lists:keyfind(Vid,
+                                              #voucher.id,
+                                              Book#book.vouchers);
+                            true ->
+                                DefaultV()
+                        end
+%% Only allow erroneous voucher or next free
+%%                         BadVs =
+%%                         [V || E <- Book#book.errors,
+%%                               V <- Book#book.vouchers,
+%%                               (E#error.type =:= voucher orelse
+%%                                E#error.type =:= item),
+%%                               E#error.id =:= Vid,
+%%                               V#voucher.id =:= Vid],
+%%                     case BadVs of
+%%                         [] -> DefaultV();
+%%                         _  -> lists:last(BadVs)
+%%                     end
                 end;
             _ ->
                 DefaultV()
@@ -268,7 +283,8 @@ account_selection(SelectedAid, Accounts) ->
      [{name,account}],
      [{option,
        [{value,?TO_HTML(A#account.id)} | Preselected(A#account.id)],
-       {pre_html, [?TO_HTML(A#account.id), ?TO_HTML(" - "),
+       {pre_html, [?TO_HTML(A#account.id),
+                   ?TO_HTML(" - "),
                    ?TO_HTML(A#account.name), ?TO_HTML(" - "),
                    ?TO_HTML(A#account.type)]}} || A <- Accounts]}.
 

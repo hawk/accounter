@@ -28,6 +28,7 @@
   <binding><replace>JOURNAL</replace><with>Journal</with></binding>
   <binding><replace>LEDGER</replace><with>Ledger</with></binding>
   <binding><replace>NAME</replace><with>Name</with></binding>
+  <binding><replace>NEW_ACCOUNT</replace><with>NEW ACCOUNT</with></binding>
   <binding><replace>NO_ERROR_MSGS</replace><with>No error messages</with></binding>
   <binding><replace>NOTE</replace><with>Description</with></binding>
   <binding><replace>NUMBER_OF</replace><with>Count</with></binding>
