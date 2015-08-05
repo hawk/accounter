@@ -25,15 +25,27 @@ get_field_delim(Args) ->
     end.
 
 csv_style(YearDir) ->
-    File = filename:join([YearDir, filename(new_style, account_type)]),
-    case filelib:is_regular(File) of
-        true  -> new_style;
-        false -> old_style
+    NewFile = filename:join([YearDir, filename(new_style, budget)]),
+    OldFile = filename:join([YearDir, filename(old_style, budget)]),
+    case {filelib:is_regular(NewFile), filelib:is_regular(OldFile)} of
+        {true, _}      -> new_style;
+        {_, true}      -> old_style
+        {false, false} -> newer_style
     end.
 
-filetypes() ->
+filetypes(newer_style) ->
+    [account_type, account, voucher, item];
+filetypes(_CsvStyle) ->
     [account_type, account, budget, voucher, item].
 
+filename(newer_style, FileType) ->
+    case FileType of
+        account_type -> "account_types.csv";
+        account      -> "accounts.csv";
+        voucher      -> "vouchers.csv";
+        item         -> "items.csv";
+        error        -> "errors.csv"
+    end;
 filename(new_style, FileType) ->
     case FileType of
         account_type -> "account_types.csv";
@@ -80,7 +92,7 @@ import_book(BooksDir, Name, Delim) ->
                 end
         end,
     CsvStyle = csv_style(YearDir),
-    Files = [filename(CsvStyle, FileType) || FileType <- filetypes()],
+    Files = [filename(CsvStyle, FileType) || FileType <- filetypes(CsvStyle)],
     AllIoList = lists:map(Fun, Files),
     [TIoList, AIoList, BIoList, VIoList, IIoList] =
         [C || {C, _E} <- AllIoList],
@@ -149,31 +161,44 @@ trim_tokens(Tail, Delim, Tokens) ->
 skip_spaces(Chars) ->
     string:strip(Chars, left, $ ).
 
-tokens_to_types(old_style = CsvStyle,
-                [["Konto_type", "Konto_negativ"] | Tail],  Types) ->
-    tokens_to_types(CsvStyle, Tail, Types);
+tokens_to_types(newer_style = CsvStyle,
+                [["AccountType", "Negate", "InBalance"] | Tail],
+                Types) ->
+    tokens_to_types(CsvStyle_style, Tail, Types);
 tokens_to_types(new_style = CsvStyle,
                 [["AccountType", "Negate", "InResult", "InBalance"] | Tail],
                 Types) ->
     tokens_to_types(CsvStyle, Tail, Types);
+tokens_to_types(old_style = CsvStyle,
+                [["Konto_type", "Konto_negativ"] | Tail],  Types) ->
+    tokens_to_types(CsvStyle, Tail, Types);
+tokens_to_types(newer_style = CsvStyle,
+                [[Id, Negate, InBalance] | Tail],
+                Types) ->
+    X = (catch #account_type{name   = to_string(type, Id, Id),
+                             negate = to_bool(type, Id, Negate),
+                             in_balance = to_bool(type, Id, InBalance)}),
+    tokens_to_types(CsvStyle, Tail, [X | Types]);
+tokens_to_types(new_style = CsvStyle,
+                [[Id, Negate, _InResult, InBalance] | Tail],
+                Types) ->
+    X = (catch #account_type{name   = to_string(type, Id, Id),
+                             negate = to_bool(type, Id, Negate),
+                             in_balance = to_bool(type, Id, InBalance)}),
+    tokens_to_types(CsvStyle, Tail, [X | Types]);
 tokens_to_types(old_style = CsvStyle, [[Id, Negate] | Tail],  Types) ->
     X = (catch #account_type{name   = to_string(type, Id, Id),
                              negate = to_bool(type, Id, Negate)}),
     tokens_to_types(CsvStyle, Tail, [X | Types]);
-tokens_to_types(new_style = CsvStyle,
-                [[Id, Negate, InResult, InBalance] | Tail],
-                Types) ->
-    X = (catch #account_type{name   = to_string(type, Id, Id),
-                             negate = to_bool(type, Id, Negate),
-                             in_result = to_bool(type, Id, InResult),
-                             in_balance = to_bool(type, Id, InBalance)}),
-    tokens_to_types(CsvStyle, Tail, [X | Types]);
-tokens_to_types(old_style, [H = [Id | _] | _Tail], _) ->
+tokens_to_types(newer_style, [H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
-    bail_out(type, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
+    bail_out(type, Id, Arity, "bad arity, 3 expected", ?FILE, ?LINE);
 tokens_to_types(new_style, [H = [Id | _] | _Tail], _) ->
     Arity = integer_to_list(length(H)),
     bail_out(type, Id, Arity, "bad arity, 4 expected", ?FILE, ?LINE);
+tokens_to_types(old_style, [H = [Id | _] | _Tail], _) ->
+    Arity = integer_to_list(length(H)),
+    bail_out(type, Id, Arity, "bad arity, 2 expected", ?FILE, ?LINE);
 tokens_to_types(_CsvStyle, [], Types) ->
     lists:reverse(Types).
 
@@ -189,6 +214,12 @@ tokens_to_accounts(new_style = CsvStyle,
                    Types,
                    Accounts) ->
     tokens_to_accounts(CsvStyle, Tail, Types, Accounts);
+tokens_to_accounts(newer_style = CsvStyle,
+                   [["Id", "Name", "Type", "Description",
+                     "Budget", "InBalance"] | Tail],
+                   Types,
+                   Accounts) ->
+    tokens_to_accounts(CsvStyle_style, Tail, Types, Accounts);
 tokens_to_accounts(old_style = CsvStyle,
                    [[Id, Name, Type, Desc, OldId,
                      InResult, InBalance] | Tail],
@@ -203,7 +234,25 @@ tokens_to_accounts(old_style = CsvStyle,
                         in_balance = to_bool(account, Id, InBalance)}),
     tokens_to_accounts(CsvStyle, Tail, Types, [A | Accounts]);
 tokens_to_accounts(new_style = CsvStyle,
-                   [[Id, Name, Type, Desc, Budget, Result, Balance] | Tail],
+                   [[Id, Name, Type, Desc, Budget, Result, InBalance] | Tail],
+                   Types,
+                   Accounts) ->
+    IdInt = to_int(account, Id, Id),
+    A = (catch #account{id      = IdInt,
+                        old_id  = IdInt, % Backwards compat
+                        name    = to_string(account, IdInt, Name),
+                        type    = Type,
+                        desc    = to_string(account, IdInt, Desc),
+                        budget  = opt_to_int(account, IdInt, Budget),
+                        in_result =
+                            to_bool(account, IdInt, Result, Type, Types,
+                                    #account_type.in_result),
+                        in_balance =
+                            to_bool(account, IdInt, InBalance, Type, Types,
+                                    #account_type.in_balance)}),
+    tokens_to_accounts(CsvStyle, Tail, Types, [A | Accounts]);
+tokens_to_accounts(newer_style = CsvStyle,
+                   [[Id, Name, Type, Desc, Budget, Result, InBalance] | Tail],
                    Types,
                    Accounts) ->
     IdInt = to_int(account, Id, Id),
@@ -226,6 +275,9 @@ tokens_to_accounts(old_style, [H = [Id | _] | _Tail], _, _) ->
 tokens_to_accounts(new_style, [H = [Id | _] | _Tail], _,  _) ->
     Arity = integer_to_list(length(H)),
     bail_out(account, Id, Arity, "bad arity, 7 expected", ?FILE, ?LINE);
+tokens_to_accounts(newer_style, [H = [Id | _] | _Tail], _,  _) ->
+    Arity = integer_to_list(length(H)),
+    bail_out(account, Id, Arity, "bad arity, 6 expected", ?FILE, ?LINE);
 tokens_to_accounts(_CsvStyle, [], _, Accounts) ->
     lists:reverse(Accounts).
 
@@ -251,12 +303,12 @@ tokens_to_budgets(old_style, [H = [Id | _] | _Tail], _, _) ->
 tokens_to_budgets(old_style, [], _, Budgets) ->
     lists:reverse(Budgets).
 
-tokens_to_vouchers(old_style = CsvStyle,
-                   [["Verifikations_ID", "V_Datum", "V_Text"] | Tail],
-                   Vouchers) ->
-    tokens_to_vouchers(CsvStyle, Tail, Vouchers);
 tokens_to_vouchers(new_style = CsvStyle,
                    [["Id", "Date", "Text"] | Tail],
+                   Vouchers) ->
+    tokens_to_vouchers(CsvStyle, Tail, Vouchers);
+tokens_to_vouchers(old_style = CsvStyle,
+                   [["Verifikations_ID", "V_Datum", "V_Text"] | Tail],
                    Vouchers) ->
     tokens_to_vouchers(CsvStyle, Tail, Vouchers);
 tokens_to_vouchers(CsvStyle, [[Id, Date, Text] | Tail], Vouchers) ->
@@ -270,13 +322,13 @@ tokens_to_vouchers(_CsvStyle, [H = [Id | _] | _Tail], _) ->
 tokens_to_vouchers(_CsvStyle, [], Vouchers) ->
     lists:reverse(Vouchers).
 
-tokens_to_items(old_style = CsvStyle,
-                [["Verifikations_ID", "Konto_Nr", "Debet", "Kredit",
-                  "Kommentar"] | Tail], Items) ->
-    tokens_to_items(CsvStyle, Tail, Items);
 tokens_to_items(new_style = CsvStyle,
                 [["VoucherId", "AccountId", "Debit", "Credit",
                   "Remark"] | Tail], Items) ->
+    tokens_to_items(CsvStyle, Tail, Items);
+tokens_to_items(old_style = CsvStyle,
+                [["Verifikations_ID", "Konto_Nr", "Debet", "Kredit",
+                  "Kommentar"] | Tail], Items) ->
     tokens_to_items(CsvStyle, Tail, Items);
 tokens_to_items(CsvStyle, [[Vid, Aid, Debit, Credit, Remark] | Tail], Items) ->
     I = #item{voucher_id = to_int(item, Vid, Vid),
@@ -465,11 +517,9 @@ encode_types(new_style, Types, Delim) ->
     [
      [from_string(Name), Delim,
       from_bool(Neg), Delim,
-      from_bool(InResult), Delim,
       from_bool(InBalance), $\n
      ] || #account_type{name   = Name,
                         negate = Neg,
-                        in_result = InResult,
                         in_balance = InBalance} <- Types
     ].
 
@@ -615,12 +665,12 @@ encode_errors(CsvStyle, Bindings, Errors, Delim) ->
                  value  = Val,
                  reason = Reason} <- Errors].
 
-errors_header(old_style, Delim) ->
+errors_header(newer_style, Delim) ->
     [
-     from_string("Typ"), Delim,
+     from_string("Type"), Delim,
      from_string("Id"), Delim,
-     from_string("Dåligt värde"), Delim,
-     from_string("Beskrivning"), $\n
+     from_string("BadValue"), Delim,
+     from_string("Reason"), $\n
     ];
 errors_header(new_style, Delim) ->
     [
@@ -628,6 +678,13 @@ errors_header(new_style, Delim) ->
      from_string("Id"), Delim,
      from_string("Bad value"), Delim,
      from_string("Reason"), $\n
+    ];
+errors_header(old_style, Delim) ->
+    [
+     from_string("Typ"), Delim,
+     from_string("Id"), Delim,
+     from_string("Dåligt värde"), Delim,
+     from_string("Beskrivning"), $\n
     ].
 
 from_any(_CsvStyle, Int) when is_integer(Int) ->

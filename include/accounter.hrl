@@ -16,7 +16,6 @@
 -record(account_type,
         {name       :: string(),
          negate     :: boolean(),
-         in_result  :: boolean(),
          in_balance :: boolean()}).
 
 -record(account,
@@ -26,6 +25,7 @@
          desc       :: string(),
          type       :: string(),
          budget     :: integer(),
+         budget_remark :: string(),
          in_result  :: boolean(),
          in_balance :: boolean()}).
 
