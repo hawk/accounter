@@ -276,17 +276,22 @@ gen_items(Bindings, Book, Accounts, Items) ->
     ].
 
 account_selection(SelectedAid, Accounts) ->
-    Preselected = fun(Aid) when Aid =:= SelectedAid ->
-                          [selected]; (_) -> []
-                  end,
+    PreSel = fun(Aid) when Aid =:= SelectedAid ->
+                     [selected]; (_) -> []
+             end,
     {select,
      [{name,account}],
-     [{option,
-       [{value,?TO_HTML(A#account.id)} | Preselected(A#account.id)],
-       {pre_html, [?TO_HTML(A#account.id),
-                   ?TO_HTML(" - "),
-                   ?TO_HTML(A#account.name), ?TO_HTML(" - "),
-                   ?TO_HTML(A#account.type)]}} || A <- Accounts]}.
+     [
+      {option,
+       [{value,?TO_HTML(A#account.id)} | PreSel(A#account.id)],
+       {pre_html,
+        [
+         ?TO_HTML(A#account.id),
+         ?TO_HTML(" - "),
+         ?TO_HTML(A#account.name), ?TO_HTML(" - "),
+                   ?TO_HTML(A#account.type)
+        ]}} || A <- Accounts
+     ]}.
 
 latest_accounts([#item{account_id = Aid} | Items], Aids) ->
     case lists:member(Aid, Aids) of

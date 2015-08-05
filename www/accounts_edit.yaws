@@ -180,6 +180,19 @@ gen_account(Id, Name, Desc, Type, Budget, InResult, InBalance) ->
                 {value, InBalance}]}}
      ]}.
 
+type_selection(SelectedType, AccountTypes) ->
+    PreSel = fun(Type) when Type =:= SelectedType ->
+                     [selected]; (_) -> []
+             end,
+    {select,
+     [{name,account_type}],
+     [
+      {option,
+       [{value,?TO_HTML(AT#account_type.name)} | PreSel(AT#account_type.name)],
+       {pre_html, [?TO_HTML(AT#account_type.name)
+                  ]}}|| AT <- AccountTypes
+     ]}.
+
 </erl>
 
 </html>

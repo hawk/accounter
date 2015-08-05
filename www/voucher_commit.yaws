@@ -43,30 +43,32 @@ out(Args) ->
                           "Invalid voucher id",
                           ?FILE, ?LINE]});
         true ->
-            NewBook = check_book(OldBook, V),
+            NewBook = amend_book(OldBook, V),
             NewV = lists:keyfind(Vid, #voucher.id, NewBook#book.vouchers),
             accounter_csv:export_voucher(BooksDir, OldBook, NewV, Delim),
             NewErrIds = lists:zf(ErrFilter, NewBook#book.errors),
-            case NewErrIds of
-                [] ->
+%%            case NewErrIds of
+%%                [] ->
+%%                    {redirect_local,
+%%                     [
+%%                      "/reports.yaws",
+%%                      ?FQ(Args, [{"name", Name}, {"voucher_id", ""}]),
+%%                      "#voucher_", HtmlVid
+%%                     ]};
+%%                _ ->
                     {redirect_local,
-                     ["/reports.yaws",
-                      ?FQ(Args, [{"name", Name}, {"voucher_id", ""}]),
-                      "#voucher_", HtmlVid
-                     ]};
-                _ ->
-                    {redirect_local,
-                     ["/voucher_edit.yaws",
+                     [
+                      "/voucher_edit.yaws",
                       ?FQ(Args, [{"name", Name}, {"voucher_id", HtmlVid}])
                      ]}
-            end
+%%            end
     end.
 
 parse_voucher_post(Args, Delim) ->
     [{"voucher", Vid}, {"date", Date}, {"text", Text} | ItemsPost] =
         yaws_api:parse_post(Args),
     BooksDir = accounter:get_books_dir(Args),
-    CsvStyle = accounter_csv:csv_style(BooksDir),
+    CsvStyle = new_style,
     Chars = lists:concat([Vid, [Delim], Date, [Delim], Text]),
     Tokens = accounter_csv:to_tokens(Chars, Delim),
     case catch accounter_csv:tokens_to_vouchers(CsvStyle, Tokens, []) of
@@ -93,9 +95,9 @@ parse_items(CsvStyle,
 parse_items(CsvStyle,
             [{"remark", Remark}, {"debit", Debit}, {"credit", Credit},
              {"account", Account} | Items], Vid, Delim) ->
-    ItemTokens = lists:concat([Vid, [Delim], Account, [Delim], Debit,
-                               [Delim], Credit, [Delim], Remark]),
-    Tokens = accounter_csv:to_tokens(ItemTokens, Delim),
+    Chars = lists:concat([Vid, [Delim], Account, [Delim], Debit,
+                          [Delim], Credit, [Delim], Remark]),
+    Tokens = accounter_csv:to_tokens(Chars, Delim),
     case accounter_csv:tokens_to_items(CsvStyle, Tokens, []) of
         [#item{} = I] ->
             [I | parse_items(CsvStyle, Items, Vid, Delim)];
@@ -110,8 +112,9 @@ parse_items(CsvStyle,
 parse_items(_CsvStyle, [], _Vid, _Delim) ->
     [].
 
-check_book(OldBook, V) ->
-    Vouchers = lists:keystore(V#voucher.id, #voucher.id,
+amend_book(OldBook, V) ->
+    Vouchers = lists:keystore(V#voucher.id,
+                              #voucher.id,
                               OldBook#book.vouchers, V),
     NewBook = OldBook#book{vouchers = Vouchers},
     accounter_check:amend_book(NewBook).
