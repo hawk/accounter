@@ -62,3 +62,16 @@ links
   http://tools.effso.se/terminologi/inkopslexikon/
   https://sv.wikipedia.org/wiki/Bokf%C3%B6ring
   https://en.wikipedia.org/wiki/Bookkeeping
+
+---
+mode: read/write/admin
+---
+Edit account type
+---
+Edit accounts
+---
+New internal form for accounts/budget
+---
+Handle vouchers in non cronolological order
+---
+Handle corrections of existing vouchers as references #nnn, manage reports
